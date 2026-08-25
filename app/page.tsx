@@ -52,10 +52,18 @@ export default function Home() {
       {/* 1. HERO SECTION WITH FULL-BLEED VIDEO BACKGROUND */}
       {/* ============================================================ */}
       <section className="relative min-h-screen  flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8 text-center">
+        {/* Fallback & Pre-load Hero Image */}
+        <img
+          src="/hero-img.png"
+          alt="مطعم نيو بورسعيد"
+          className="absolute inset-0 w-full h-full object-cover -z-20 scale-105"
+        />
+
         {/* Full-Screen Background Video */}
         <video
           ref={heroVideoRef}
           src="/Hero-vid.mp4"
+          poster="/hero-img.png"
           autoPlay
           loop
           muted={isHeroMuted}

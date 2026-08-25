@@ -58,6 +58,11 @@ export const metadata: Metadata = {
     "حجز طاولة",
     "منيو نيو بورسعيد",
   ],
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "مطعم نيو بورسعيد | New Port Said Restaurant",
     description: "أصالة الطعم البورسعيدي والمشويات على الفحم",
