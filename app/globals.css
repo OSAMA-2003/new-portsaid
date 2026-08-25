@@ -1,26 +1,146 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Changa';
+  src: url('/fonts/Changa-Regular-2.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Changa';
+  src: url('/fonts/Changa-SemiBold-2.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Changa';
+  src: url('/fonts/Changa-Bold-2.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ArefRuqaa';
+  src: url('/fonts/ArefRuqaa-Regular-1.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ArefRuqaa';
+  src: url('/fonts/ArefRuqaa-Bold-1.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-brand-orange: #F26D21;
+  --color-brand-light-orange: #F9A03F;
+  --color-brand-cream: #FDF9F1;
+  --color-brand-dark: #4A1D23;
+  --color-brand-brown: #3D271D;
+  --color-brand-text: #2D241E;
+  --color-brand-gold: #CCA72F;
+  --color-brand-surface: #FBF9F8;
+  --color-brand-muted: #73675E;
+
+  --font-changa: var(--font-changa), 'Changa', sans-serif;
+  --font-aref: var(--font-aref-ruqaa), 'ArefRuqaa', serif;
+  --font-sans: var(--font-changa), 'Changa', system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-aref-ruqaa), 'ArefRuqaa', serif;
+  --font-amiri: var(--font-aref-ruqaa), 'ArefRuqaa', serif;
+  --font-cairo: var(--font-changa), 'Changa', sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #FDF9F1;
+  --foreground: #2D241E;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-changa), 'Changa', system-ui, -apple-system, sans-serif;
+  direction: rtl;
+  text-align: right;
+  overflow-x: hidden;
 }
+
+h1, h2, h3, h4, .font-serif, .font-aref, .font-heading {
+  font-family: var(--font-aref-ruqaa), 'ArefRuqaa', serif;
+}
+
+.hero-bg {
+  background-image: radial-gradient(rgba(242, 109, 33, 0.08) 1px, transparent 1px), radial-gradient(rgba(74, 29, 35, 0.04) 1px, #FDF9F1 1px);
+  background-size: 24px 24px;
+}
+
+.blob-shape {
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+}
+
+.organic-shape-1 {
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+}
+
+.organic-shape-2 {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+.custom-shadow {
+  box-shadow: 0 10px 30px -10px rgba(74, 29, 35, 0.12), 0 4px 12px -2px rgba(242, 109, 33, 0.08);
+}
+
+.custom-shadow-lg {
+  box-shadow: 0 20px 40px -15px rgba(74, 29, 35, 0.18), 0 8px 20px -4px rgba(242, 109, 33, 0.12);
+}
+
+.paper-texture {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+.glass-nav {
+  background: rgba(253, 249, 241, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.arch-top {
+  border-radius: 120px 120px 16px 16px;
+}
+
+@keyframes marquee-rtl {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-rtl {
+  display: flex;
+  width: max-content;
+  animation: marquee-rtl 32s linear infinite;
+}
+
+.animate-marquee-rtl:hover {
+  animation-play-state: paused;
+}
+

@@ -1,0 +1,333 @@
+export interface MenuItemData {
+  id: string;
+  name: string;
+  nameEn: string;
+  category: string;
+  price: number;
+  description: string;
+  image: string;
+  badge?: "الأكثر طلباً" | "اختيار الشيف" | "جديد" | "عائلي";
+  isSpicy?: boolean;
+  calories?: number;
+  preparationTime?: string;
+  portion?: string;
+}
+
+export interface MenuCategory {
+  id: string;
+  name: string;
+  iconName: string;
+  description: string;
+}
+
+export const MENU_CATEGORIES: MenuCategory[] = [
+  {
+    id: "all",
+    name: "كل القائمة",
+    iconName: "Utensils",
+    description: "استعرض جميع أطباق ومشويات نيو بورسعيد الشهية",
+  },
+  {
+    id: "grills",
+    name: "مشويات على الفحم",
+    iconName: "Flame",
+    description: "كباب، كفتة، ريش، طاووق مشوي على الفحم الطبيعي بتتبيلة سرية",
+  },
+  {
+    id: "tagines",
+    name: "طواجن بلدي أصيلة",
+    iconName: "Soup",
+    description: "طواجن فخار سخنة بالسمنة البلدي وتوابل زمان",
+  },
+  {
+    id: "feasts",
+    name: "صواني وعزومات",
+    iconName: "Crown",
+    description: "صواني التوفير واللمة الكبيرة تكفي العائلات والأصحاب",
+  },
+  {
+    id: "hawawshi",
+    name: "حواوشي وساندوتشات",
+    iconName: "Sandwich",
+    description: "حواوشي بلدي مقرمش وساندوتشات مشويات غرقانة صوص",
+  },
+  {
+    id: "appetizers",
+    name: "مقبلات وسلطات",
+    iconName: "Salad",
+    description: "شوربة لسان عصفور، ممبار، طحينة سمسم، وسلطات طازة",
+  },
+  {
+    id: "desserts",
+    name: "حلويات ومشروبات",
+    iconName: "Coffee",
+    description: "أم علي بالقشطة، عصائر فريش مثلجة، ومشروبات ساخنة",
+  },
+];
+
+export const MENU_ITEMS: MenuItemData[] = [
+  // Charcoal Grills
+  {
+    id: "grill-mix-platter",
+    name: "بلاتر المشاوي المشكل الملكي",
+    nameEn: "Royal Mixed Grill Platter",
+    category: "grills",
+    price: 250,
+    description: "تشكيلة فاخرة من الكباب البلدي، الكفتة المتبلة، الشيش طاووق والريش مع أرز بسمتي بالمكسرات والخبز الطازج.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD36-TZoKJowpy9x82axM8Fqne6mo0run_D4kmZZWiOog84SRZvpqx0X_JSwrVZaPVUpK_7CKz_4uMoJ918upJkL_a_s0tKrN_dUj5YWth2sPMOW1FrdoCxVzaTM6Lr4QddskZnje09rQ77ctdFVTSdZUdtUNcZzHE6Qb7wObHh0rO__bVgDfErd9VvE5qvglHgo09OPZNbyzUV8SfY2_v9gcjx8jQ_APUJzmvYcvKzzkgY6SiGJp_6xg",
+    badge: "الأكثر طلباً",
+    calories: 780,
+    preparationTime: "20-25 دقيقة",
+    portion: "فردين",
+  },
+  {
+    id: "kebab-rice",
+    name: "كباب ضاني وكفتة مع أرز بسمتي",
+    nameEn: "Lamb Kebab & Kofta with Rice",
+    category: "grills",
+    price: 180,
+    description: "قطع كباب ضاني مشوية على الفحم الهادئ مع أسياخ كفتة متبلة بخلطة نيو بورسعيد الخاصة وأرز بسمتي أصفر ذهبي.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBwKQXoMQ_bE95cgfOrLjTI0RbN78-dbPlRh_GPLa17GnFll8KO39DylTiRQnh62nasHBqFu9qM6sISprZNaEn9FGlrG7pb9XoIBtpIpjf1Zvzg2-qiJtigHREzee1YRq9OJeY5QmUtVUbkhV_1Mom8B3AmOYvMbHKmln_DK4qZgOEaX8cLj3ni-EhyDnsJ0vO6Ff_9xmOVboc-7Jc1p39MSFbAyx-GqwHHEA1_x3_bVw-mqZzJXk-4mA",
+    badge: "اختيار الشيف",
+    calories: 650,
+    preparationTime: "15-20 دقيقة",
+    portion: "فرد واحد",
+  },
+  {
+    id: "sizzling-meat",
+    name: "لحمة محمرة ومبهرة على الجريل",
+    nameEn: "Sizzling Sauteed Spiced Meat",
+    category: "grills",
+    price: 160,
+    description: "شرائح لحم بلدي طري محمر بالسمن البلدي والفلفل الأخضر والبصل المكرمل مع بهارات بورسعيدية فريدة.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBL6L0-dlINvY12z4Cg7jhDNBp-Exi581BuQAXZ-6_xbHyG_QkyxUA80gVwf6w8VneOlYSGB2YX4nSjJ64wTut6jOlzlC0vihYaoPqWUnmBKk9MtOwBf7TgAG-kC4QljHeVhF_jWJK-qhvZYadpc5Qf5Uk_ROJnt0U6_JD-dQyYA80PSXktgV3wuHPIok_aWI3ggJ3I2vGseq_qKTfw2mhL9vaXjlUjrjb-yYqplew082713qxwCCy4WA",
+    badge: "الأكثر طلباً",
+    calories: 590,
+    preparationTime: "15 دقيقة",
+    portion: "فرد واحد",
+  },
+  {
+    id: "chicken-tawook",
+    name: "شيش طاووق مشوي عالفحم",
+    nameEn: "Charcoal Grilled Chicken Tawook",
+    category: "grills",
+    price: 140,
+    description: "مكعبات صدور وأوراك الدجاج الطازجة متبلة بالزبادي والأعشاب والليمون مع الطماطم والفلفل المشوي وثومية خاصة.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuARQNCZLWoktE0AAD2ysgzsbx8jHZvCbRu3jTK0sNEmAnbDR32oeEcJpOFUZx0p3fp-4u4sRknmjv6LxeGwHD1zFKbkQIM-YUT0vJt6aUt1SJdaNbbcXYJdeLbceFIJk9vkvEYMls5WF-6TgBFfGZiYDzdOmyTX5Scg5ibPBuy_FpV7NHOM7z_Ay_gxzCyrb5GLjlgX1LVtcdahpY9TonlSpng6ThO4snBQfTonyVFAnuHYus0g4x8yVQ",
+    calories: 480,
+    preparationTime: "15-20 دقيقة",
+    portion: "فرد واحد",
+  },
+  {
+    id: "grilled-ribs",
+    name: "ريش ضاني مشوية بالزعتر البري",
+    nameEn: "Grilled Lamb Ribs with Wild Thyme",
+    category: "grills",
+    price: 220,
+    description: "أضلاع ضاني بتلو طرية دايبة في الفم، متبلة بخلطة البصل والزعتر ومشوية على نار هادئة لدرجة استواء مثالية.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC_uhi6l46VnBFp-yGS5N0wHEVVmC_wY-_ojWD2-cLfUy3aN2-zZ2O82AjvtVlxJrKkRBcjmxMpWI5mkQ_v3405JIztzQnDmbbob6c3jtac1Fqxeu4--MvE_ujFPya9BbfTriYcPM0CY2-cEcwSC9vY1vCbyzUY97JBvEsKJTMsqTJmuguuZ8iGLRpgYg04DiFFRJTr1t3d7YTe2SDecyz-VvJ04y7hTaY1DFwILTIDP7BoZl6Nc_yWiQ",
+    badge: "اختيار الشيف",
+    calories: 720,
+    preparationTime: "25 دقيقة",
+    portion: "فرد واحد",
+  },
+  {
+    id: "kofta-baladi-kg",
+    name: "كيلو كفتة بلدي مشوية عالفحم",
+    nameEn: "1KG Grilled Baladi Kofta",
+    category: "grills",
+    price: 360,
+    description: "كيلو كفتة لحم بلدي صافي مع بهارات نيو بورسعيد المميزة تقدم مع سلطات وطحينة وعيش سخن.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCKW2CXhxJ6kBZux7iohwBiQ5scBIlgGsFUpz6XRKViel4VM3BWAREB4xoMNAXi6Rp7mPp-BqFQ7F2GpIJTEj4vM7IEdi3F9aPfMtBmwchTA6FIhv6vitZvim45xKHVGEEtBPatIRKi4dpblvpBVwPfI8GAC8gGlnZovUQK0rJfDz8BqoAtsu69znpgyncvkQd7CQS4ajaSCBZ1oPnIr5l9ka-osONM4GyvJlQPbg6Sc0s77x753ddmSA",
+    badge: "عائلي",
+    calories: 1200,
+    preparationTime: "25 دقيقة",
+    portion: "3-4 أفراد",
+  },
+
+  // Egyptian Tagines
+  {
+    id: "tagine-meat-onions",
+    name: "طاجن لحمة بلدي بالبصل القاورما",
+    nameEn: "Baladi Meat Tagine with Shallots",
+    category: "tagines",
+    price: 195,
+    description: "لحم كندوز بلدي مسوى في فخار مغطى بالفرن مع بصل قاورما مكرمل وصوص بني غني بنكهة السمن البلدي والتوابل.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBL6L0-dlINvY12z4Cg7jhDNBp-Exi581BuQAXZ-6_xbHyG_QkyxUA80gVwf6w8VneOlYSGB2YX4nSjJ64wTut6jOlzlC0vihYaoPqWUnmBKk9MtOwBf7TgAG-kC4QljHeVhF_jWJK-qhvZYadpc5Qf5Uk_ROJnt0U6_JD-dQyYA80PSXktgV3wuHPIok_aWI3ggJ3I2vGseq_qKTfw2mhL9vaXjlUjrjb-yYqplew082713qxwCCy4WA",
+    badge: "الأكثر طلباً",
+    calories: 620,
+    preparationTime: "20 دقيقة",
+    portion: "فرد واحد",
+  },
+  {
+    id: "tagine-orzo-meat",
+    name: "طاجن لسان عصفور بالموزة البتلو",
+    nameEn: "Orzo Tagine with Veal Shank",
+    category: "tagines",
+    price: 185,
+    description: "لسان عصفور محمص مع قطع موزة بتلو دايبة في مرقة متبلة وطماطم طازجة محمرة بالفرن.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD36-TZoKJowpy9x82axM8Fqne6mo0run_D4kmZZWiOog84SRZvpqx0X_JSwrVZaPVUpK_7CKz_4uMoJ918upJkL_a_s0tKrN_dUj5YWth2sPMOW1FrdoCxVzaTM6Lr4QddskZnje09rQ77ctdFVTSdZUdtUNcZzHE6Qb7wObHh0rO__bVgDfErd9VvE5qvglHgo09OPZNbyzUV8SfY2_v9gcjx8jQ_APUJzmvYcvKzzkgY6SiGJp_6xg",
+    calories: 550,
+    preparationTime: "20 دقيقة",
+    portion: "فرد واحد",
+  },
+  {
+    id: "tagine-vine-leaves-knuckles",
+    name: "طاجن ورق عنب بالكوارع المخلية",
+    nameEn: "Vine Leaves Tagine with Boneless Knuckles",
+    category: "tagines",
+    price: 210,
+    description: "أصابع ورق عنب متبلة بالليمون ودبس الرمان تعلوها طبقة من الكوارع البلدية المخلية المحمرة مع الطشة بالثوم والكزبرة.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCKW2CXhxJ6kBZux7iohwBiQ5scBIlgGsFUpz6XRKViel4VM3BWAREB4xoMNAXi6Rp7mPp-BqFQ7F2GpIJTEj4vM7IEdi3F9aPfMtBmwchTA6FIhv6vitZvim45xKHVGEEtBPatIRKi4dpblvpBVwPfI8GAC8gGlnZovUQK0rJfDz8BqoAtsu69znpgyncvkQd7CQS4ajaSCBZ1oPnIr5l9ka-osONM4GyvJlQPbg6Sc0s77x753ddmSA",
+    badge: "اختيار الشيف",
+    calories: 740,
+    preparationTime: "25 دقيقة",
+    portion: "فردين",
+  },
+
+  // Feasts & Platters
+  {
+    id: "feast-el-pasha",
+    name: "صينية الباشا الملكية العائلية",
+    nameEn: "The Royal Pasha Feast Platter",
+    category: "feasts",
+    price: 680,
+    description: "صينية عملاقة تحتوي على 1/2 كيلو كباب، 1/2 كيلو كفتة، 1/2 فرخة مشوية، شيش طاووق، أرز بسمتي بالخلطة، وممبار مع باقة سلطات متكاملة.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD36-TZoKJowpy9x82axM8Fqne6mo0run_D4kmZZWiOog84SRZvpqx0X_JSwrVZaPVUpK_7CKz_4uMoJ918upJkL_a_s0tKrN_dUj5YWth2sPMOW1FrdoCxVzaTM6Lr4QddskZnje09rQ77ctdFVTSdZUdtUNcZzHE6Qb7wObHh0rO__bVgDfErd9VvE5qvglHgo09OPZNbyzUV8SfY2_v9gcjx8jQ_APUJzmvYcvKzzkgY6SiGJp_6xg",
+    badge: "عائلي",
+    calories: 2600,
+    preparationTime: "30 دقيقة",
+    portion: "4-5 أفراد",
+  },
+  {
+    id: "feast-karam-zaman",
+    name: "صينية كرم زمان للمشويات والطواجن",
+    nameEn: "Karam Zaman Feast Platter",
+    category: "feasts",
+    price: 520,
+    description: "مشكل كفتة وطاووق مع طاجن لحمة بصل قاورما، ممبار مقرمش، بطاطس محمرة وأرز متبل.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBwKQXoMQ_bE95cgfOrLjTI0RbN78-dbPlRh_GPLa17GnFll8KO39DylTiRQnh62nasHBqFu9qM6sISprZNaEn9FGlrG7pb9XoIBtpIpjf1Zvzg2-qiJtigHREzee1YRq9OJeY5QmUtVUbkhV_1Mom8B3AmOYvMbHKmln_DK4qZgOEaX8cLj3ni-EhyDnsJ0vO6Ff_9xmOVboc-7Jc1p39MSFbAyx-GqwHHEA1_x3_bVw-mqZzJXk-4mA",
+    badge: "عائلي",
+    calories: 1950,
+    preparationTime: "25 دقيقة",
+    portion: "3 أفراد",
+  },
+
+  // Hawawshi & Sandwiches
+  {
+    id: "hawawshi-special-cheese",
+    name: "حواوشي نيو بورسعيد بالموتزاريلا",
+    nameEn: "New Port Said Mozzarella Hawawshi",
+    category: "hawawshi",
+    price: 85,
+    description: "خبز بلدي مقرمش محشو باللحم المفروم المتبل بالبصل والفلفل الحار مع طبقة وفيرة من جبنة الموتزاريلا الذائبة.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCKW2CXhxJ6kBZux7iohwBiQ5scBIlgGsFUpz6XRKViel4VM3BWAREB4xoMNAXi6Rp7mPp-BqFQ7F2GpIJTEj4vM7IEdi3F9aPfMtBmwchTA6FIhv6vitZvim45xKHVGEEtBPatIRKi4dpblvpBVwPfI8GAC8gGlnZovUQK0rJfDz8BqoAtsu69znpgyncvkQd7CQS4ajaSCBZ1oPnIr5l9ka-osONM4GyvJlQPbg6Sc0s77x753ddmSA",
+    badge: "الأكثر طلباً",
+    isSpicy: true,
+    calories: 520,
+    preparationTime: "12 دقيقة",
+    portion: "رغيف كامل",
+  },
+  {
+    id: "hawawshi-baladi",
+    name: "حواوشي لحمة بلدي أصيل",
+    nameEn: "Classic Baladi Hawawshi",
+    category: "hawawshi",
+    price: 70,
+    description: "الحواوشي المصري على أصوله بلحم بلدي مفروم وبهارات بورسعيدية خاصة ومسوى على الجريل بدهن اللية الخفيفة.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCKW2CXhxJ6kBZux7iohwBiQ5scBIlgGsFUpz6XRKViel4VM3BWAREB4xoMNAXi6Rp7mPp-BqFQ7F2GpIJTEj4vM7IEdi3F9aPfMtBmwchTA6FIhv6vitZvim45xKHVGEEtBPatIRKi4dpblvpBVwPfI8GAC8gGlnZovUQK0rJfDz8BqoAtsu69znpgyncvkQd7CQS4ajaSCBZ1oPnIr5l9ka-osONM4GyvJlQPbg6Sc0s77x753ddmSA",
+    calories: 460,
+    preparationTime: "10 دقائق",
+    portion: "رغيف كامل",
+  },
+  {
+    id: "sandwich-kofta-smoked",
+    name: "ساندوتش كفتة مدخنة بالطحينة",
+    nameEn: "Smoked Kofta Sandwich with Tahini",
+    category: "hawawshi",
+    price: 55,
+    description: "أسياخ كفتة مشوية على الفحم في عيش بلدي سخن مع صوص الطحينة السمسم والبقدونس الطازج ورشة سماق.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBwKQXoMQ_bE95cgfOrLjTI0RbN78-dbPlRh_GPLa17GnFll8KO39DylTiRQnh62nasHBqFu9qM6sISprZNaEn9FGlrG7pb9XoIBtpIpjf1Zvzg2-qiJtigHREzee1YRq9OJeY5QmUtVUbkhV_1Mom8B3AmOYvMbHKmln_DK4qZgOEaX8cLj3ni-EhyDnsJ0vO6Ff_9xmOVboc-7Jc1p39MSFbAyx-GqwHHEA1_x3_bVw-mqZzJXk-4mA",
+    calories: 380,
+    preparationTime: "8 دقائق",
+    portion: "ساندوتش كبير",
+  },
+
+  // Appetizers & Salads
+  {
+    id: "mombar-crispy",
+    name: "طبق ممبار بورسعيدي مقرمش",
+    nameEn: "Crispy Port Said Mombar",
+    category: "appetizers",
+    price: 75,
+    description: "ممبار بلدي محشو بالأرز والخلطة الحمراء المتبلة ومحمر في السمن البلدي حتى القرمشة الذهبية.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCKW2CXhxJ6kBZux7iohwBiQ5scBIlgGsFUpz6XRKViel4VM3BWAREB4xoMNAXi6Rp7mPp-BqFQ7F2GpIJTEj4vM7IEdi3F9aPfMtBmwchTA6FIhv6vitZvim45xKHVGEEtBPatIRKi4dpblvpBVwPfI8GAC8gGlnZovUQK0rJfDz8BqoAtsu69znpgyncvkQd7CQS4ajaSCBZ1oPnIr5l9ka-osONM4GyvJlQPbg6Sc0s77x753ddmSA",
+    badge: "الأكثر طلباً",
+    calories: 420,
+    preparationTime: "10 دقائق",
+    portion: "طبق مشاركة",
+  },
+  {
+    id: "orzo-soup-meat",
+    name: "شوربة لسان عصفور باللحمة والمستكة",
+    nameEn: "Orzo Meat Soup with Mastic",
+    category: "appetizers",
+    price: 45,
+    description: "شوربة مرقة لحم بلدي صافية بنكهة المستكة والحبهان مع لسان العصفور المحمص وقطع لحم ناعمة.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBL6L0-dlINvY12z4Cg7jhDNBp-Exi581BuQAXZ-6_xbHyG_QkyxUA80gVwf6w8VneOlYSGB2YX4nSjJ64wTut6jOlzlC0vihYaoPqWUnmBKk9MtOwBf7TgAG-kC4QljHeVhF_jWJK-qhvZYadpc5Qf5Uk_ROJnt0U6_JD-dQyYA80PSXktgV3wuHPIok_aWI3ggJ3I2vGseq_qKTfw2mhL9vaXjlUjrjb-yYqplew082713qxwCCy4WA",
+    calories: 210,
+    preparationTime: "5 دقائق",
+    portion: "بولة فردية",
+  },
+  {
+    id: "appetizers-mix-trio",
+    name: "تشكيلة مقبلات (طحينة + بابا غنوج + سلطة بلدي)",
+    nameEn: "Appetizers Trio Mix",
+    category: "appetizers",
+    price: 40,
+    description: "طحينة بيضاء سمسم فاخرة، بابا غنوج مدخن على الفحم، وسلطة بلدي بالدقة والليمون والكمون.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCKW2CXhxJ6kBZux7iohwBiQ5scBIlgGsFUpz6XRKViel4VM3BWAREB4xoMNAXi6Rp7mPp-BqFQ7F2GpIJTEj4vM7IEdi3F9aPfMtBmwchTA6FIhv6vitZvim45xKHVGEEtBPatIRKi4dpblvpBVwPfI8GAC8gGlnZovUQK0rJfDz8BqoAtsu69znpgyncvkQd7CQS4ajaSCBZ1oPnIr5l9ka-osONM4GyvJlQPbg6Sc0s77x753ddmSA",
+    calories: 180,
+    preparationTime: "5 دقائق",
+    portion: "3 أطباق صغيرة",
+  },
+
+  // Desserts & Drinks
+  {
+    id: "om-ali-cream-nuts",
+    name: "طاجن أم علي بالقشطة والمكسرات",
+    nameEn: "Om Ali with Clotted Cream & Pistachio",
+    category: "desserts",
+    price: 65,
+    description: "رقائق الميل فوي الهشة في حليب بلدي ساخن مع الزبدة والمكسرات المحمصة ووجه قشطة بلدي مكرمل بالفرن.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBL6L0-dlINvY12z4Cg7jhDNBp-Exi581BuQAXZ-6_xbHyG_QkyxUA80gVwf6w8VneOlYSGB2YX4nSjJ64wTut6jOlzlC0vihYaoPqWUnmBKk9MtOwBf7TgAG-kC4QljHeVhF_jWJK-qhvZYadpc5Qf5Uk_ROJnt0U6_JD-dQyYA80PSXktgV3wuHPIok_aWI3ggJ3I2vGseq_qKTfw2mhL9vaXjlUjrjb-yYqplew082713qxwCCy4WA",
+    badge: "الأكثر طلباً",
+    calories: 460,
+    preparationTime: "10 دقائق",
+    portion: "طاجن فردي كبير",
+  },
+  {
+    id: "lemon-mint-fresh",
+    name: "عصير ليمون بالنعناع فريش مثلج",
+    nameEn: "Fresh Mint Lemonade",
+    category: "desserts",
+    price: 35,
+    description: "عصير ليمون طازج مع أوراق النعناع الأخضر والثلج المجروش منعش ومثالي بعد المشاوي.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCPugHcLuXd6NOGThwuxyZ4en5d40T01EQ72DcDXpEgddLjiudguVvuRhrVkDYkdEjqWwASqA04EcSJCT0JI1cUKWoWdc2V3JQehwhOgrt8XTIGYsRMsgTL9VEXhWW6LR79H_359o3MV0oU7JCvcjlzJkyyMl4ct_uj1TC7Oeobts8bg64d_pRIWP7X1zUdOU3PLQE44VBfnvXl30g8NDdFm6N9IZHNB2nlanek4bSKeI50iszGbqhe6A",
+    calories: 120,
+    preparationTime: "3 دقائق",
+    portion: "كوب كبير",
+  },
+  {
+    id: "mango-juice-natural",
+    name: "عصير مانجو فريش طبيعي",
+    nameEn: "Pure Natural Mango Juice",
+    category: "desserts",
+    price: 45,
+    description: "عصير مانجو إسماعيلاوي طبيعي 100% غني وبارد بدون إضافات صناعية.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCPugHcLuXd6NOGThwuxyZ4en5d40T01EQ72DcDXpEgddLjiudguVvuRhrVkDYkdEjqWwASqA04EcSJCT0JI1cUKWoWdc2V3JQehwhOgrt8XTIGYsRMsgTL9VEXhWW6LR79H_359o3MV0oU7JCvcjlzJkyyMl4ct_uj1TC7Oeobts8bg64d_pRIWP7X1zUdOU3PLQE44VBfnvXl30g8NDdFm6N9IZHNB2nlanek4bSKeI50iszGbqhe6A",
+    calories: 160,
+    preparationTime: "3 دقائق",
+    portion: "كوب كبير",
+  },
+];
