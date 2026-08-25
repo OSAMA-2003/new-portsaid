@@ -170,22 +170,23 @@ export default function AdminPage() {
 
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingItem || !editingItem.name.trim()) {
+    const itemName = editingItem?.name?.trim() || "";
+    if (!itemName) {
       showToast("يرجى كتابة اسم الطبق أولاً", "error");
       return;
     }
 
     try {
       await upsertMenuItem({
-        id: editingItem.id?.trim() || undefined,
-        category_id: editingItem.category_id || categories[0]?.id || "grills",
-        name: editingItem.name.trim(),
-        price: editingItem.is_daily ? "يومي" : Number(editingItem.price) || 0,
-        is_daily: editingItem.is_daily,
-        badge: editingItem.badge,
-        description: editingItem.description,
-        image: editingItem.image,
-        is_available: editingItem.is_available ?? true,
+        id: editingItem?.id?.trim() || undefined,
+        category_id: editingItem?.category_id || categories[0]?.id || "grills",
+        name: itemName,
+        price: editingItem?.is_daily ? "يومي" : Number(editingItem?.price) || 0,
+        is_daily: editingItem?.is_daily,
+        badge: editingItem?.badge,
+        description: editingItem?.description,
+        image: editingItem?.image,
+        is_available: editingItem?.is_available ?? true,
       });
       setItemModalOpen(false);
       showToast("تم حفظ بيانات الطبق بنجاح!");
@@ -245,16 +246,20 @@ export default function AdminPage() {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingCategory || !editingCategory.title) return;
+    const categoryTitle = editingCategory?.title?.trim() || "";
+    if (!categoryTitle) {
+      showToast("يرجى كتابة اسم القسم", "error");
+      return;
+    }
 
     try {
       await upsertCategory({
-        id: editingCategory.id,
-        title: editingCategory.title,
-        titleEn: editingCategory.titleEn,
-        image: editingCategory.image,
-        description: editingCategory.description,
-        icon: editingCategory.icon,
+        id: editingCategory?.id?.trim() || undefined,
+        title: categoryTitle,
+        titleEn: editingCategory?.titleEn,
+        image: editingCategory?.image,
+        description: editingCategory?.description,
+        icon: editingCategory?.icon,
       });
       setCategoryModalOpen(false);
       showToast("تم حفظ بيانات القسم بنجاح!");
