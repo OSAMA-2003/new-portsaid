@@ -9,6 +9,10 @@ const CX = VIEW_W / 2;
 const CY = VIEW_H / 2;
 const EDGE_PAD = 6;
 
+// Universal cross-platform Arabic font stack (iOS / Android / macOS / Windows)
+const UNIVERSAL_FONT_STACK =
+  "var(--font-changa), 'Changa', -apple-system, BlinkMacSystemFont, 'Geeza Pro', 'Noto Sans Arabic', 'Noto Kufi Arabic', 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif";
+
 const buildPath = (shape: string, curviness: number, ribbonWidth: number) => {
   const c = Math.max(0, curviness);
   const room = Math.max(20, CY - Math.max(0, ribbonWidth) / 2 - EDGE_PAD);
@@ -112,7 +116,9 @@ export const TextLoop: React.FC<TextLoopProps> = ({
       fontSize: `${fontSize}px`,
       fontWeight,
       letterSpacing: letterSpacing ? `${letterSpacing}px` : "normal",
-      fontFamily: "var(--font-changa), 'Changa', system-ui, sans-serif",
+      fontFamily: UNIVERSAL_FONT_STACK,
+      WebkitFontSmoothing: "antialiased" as const,
+      MozOsxFontSmoothing: "grayscale" as const,
     }),
     [fontSize, fontWeight, letterSpacing]
   );
@@ -160,34 +166,31 @@ export const TextLoop: React.FC<TextLoopProps> = ({
       (document as any).fonts.ready.then(measure).catch(() => {});
     }
 
+    window.addEventListener("resize", measure);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      window.removeEventListener("resize", measure);
     };
-  }, [d, unit, fontSize, fontWeight, letterSpacing]);
+  }, [d, unit, textStyle]);
 
-  // Seamless Modular Loop Animation with GSAP
+  // GSAP 1-unit loop animation
   useEffect(() => {
-    const { unitWidth } = metrics;
     const textPathEl = textPathRef.current;
-    if (!textPathEl || !unitWidth || unitWidth <= 0) return undefined;
+    if (!textPathEl || metrics.unitWidth <= 0) return;
 
-    // Start with buffer so the text starts before the visible area
-    const baseOffset = -unitWidth * 2;
+    tweenRef.current?.kill();
+
+    const forward = direction === "forward";
+    const duration = Math.max(1, metrics.unitWidth / Math.max(1, speed));
+    const baseOffset = forward ? -metrics.unitWidth : 0;
+    const distance = forward ? metrics.unitWidth : -metrics.unitWidth;
+
     textPathEl.setAttribute("startOffset", `${baseOffset}px`);
 
-    if (speed <= 0) return undefined;
-
     const state = { offset: 0 };
-    const duration = Math.max(3, unitWidth / speed);
-
-    if (tweenRef.current) {
-      tweenRef.current.kill();
-    }
-
-    // Animate exactly 1 unitWidth then loop seamlessly (modulo 1 unit = visually identical)
     tweenRef.current = gsap.to(state, {
-      offset: direction === "forward" ? -unitWidth : unitWidth,
+      offset: distance,
       duration: duration,
       ease: "none",
       repeat: -1,
@@ -245,8 +248,12 @@ export const TextLoop: React.FC<TextLoopProps> = ({
         {/* Hidden measurement text element */}
         <text
           ref={measureRef}
-          className="invisible pointer-events-none opacity-0"
+          className="invisible pointer-events-none opacity-0 font-bold"
           style={textStyle}
+          fontFamily={UNIVERSAL_FONT_STACK}
+          fontSize={fontSize}
+          fontWeight={fontWeight}
+          xmlSpace="preserve"
           aria-hidden="true"
         >
           {unit}
@@ -254,10 +261,15 @@ export const TextLoop: React.FC<TextLoopProps> = ({
 
         {/* Seamless Continuous Text Path */}
         <text
-          className="select-none pointer-events-none"
+          className="select-none pointer-events-none font-bold"
           style={textStyle}
+          fontFamily={UNIVERSAL_FONT_STACK}
+          fontSize={fontSize}
+          fontWeight={fontWeight}
           fill={color}
+          textRendering="geometricPrecision"
           dominantBaseline="central"
+          xmlSpace="preserve"
           aria-hidden="true"
         >
           <textPath ref={textPathRef} href={`#${pathId}`} xlinkHref={`#${pathId}`}>

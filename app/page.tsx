@@ -11,23 +11,21 @@ import {
   MapPin,
   Clock,
   ArrowLeft,
-  CalendarCheck,
   Phone,
   Volume2,
   VolumeX,
   Heart,
-  Leaf,
   Sparkles,
   ShoppingBag,
   Store,
   Smartphone,
   CheckCircle2,
 } from "lucide-react";
-import { MENU_ITEMS } from "@/lib/menuData";
-import { DishCard } from "@/components/DishCard";
 import { DishCarousel } from "@/components/DishCarousel";
 import { ReservationSection } from "@/components/ReservationSection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
+import { GallerySection } from "@/components/GallerySection";
+import { FeedbackSection } from "@/components/FeedbackSection";
 import TextLoop from "@/components/TextLoop";
 import SplitText from "@/components/SplitText";
 import AnimatedCounter from "@/components/AnimatedCounter";
@@ -117,7 +115,7 @@ export default function Home() {
             />
 
             <p className="text-brand-muted text-base sm:text-lg leading-relaxed">
-              من قلب سوهاح الباسلة، انطلقت رحلتنا بحلم بسيط: تقديم طعام مصري حقيقي يحتفي بالنكهة الغنية، ويجمع العائلة والأصدقاء حول موائد عامرة بالمحبة واللذة. نختار لحومنا البلدية بعناية فائقة، ونشويها بطرقنا المتوارثة لنمنحكم تجربة لا تُنسى في كل لقمة.
+              من قلب سوهاج الباسلة، انطلقت رحلتنا بحلم بسيط: تقديم طعام مصري حقيقي يحتفي بالنكهة الغنية، ويجمع العائلة والأصدقاء حول موائد عامرة بالمحبة واللذة. نختار لحومنا البلدية بعناية فائقة، ونشويها بطرقنا المتوارثة لنمنحكم تجربة لا تُنسى في كل لقمة.
             </p>
 
 
@@ -336,83 +334,9 @@ export default function Home() {
       </section> */}
 
       {/* ============================================================ */}
-      {/* 6. MOMENTS GALLERY SECTION */}
+      {/* 6. MOMENTS GALLERY SECTION (ANIMATED MARQUEE) */}
       {/* ============================================================ */}
-      {/* 6. MOMENTS GALLERY SECTION */}
-      {/* ============================================================ */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-brand-cream">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-            <div className="space-y-2 text-right">
-              <span className="text-brand-orange font-aref text-2xl sm:text-3xl font-bold block">
-                لحظاتنا وأجواؤنا
-              </span>
-              <SplitText
-                text="شوف لحظات لا تُنسى في نيو بورسعيد"
-                tag="h2"
-                className="font-aref text-3xl sm:text-5xl font-bold text-brand-brown block"
-                splitType="words"
-                delay={35}
-                duration={1}
-              />
-              <p className="text-brand-muted text-sm sm:text-base">
-                ذكريات ولمّات حلوة من قلب مطعمنا وسفرة عامرة بالحب
-              </p>
-            </div>
-          </div>
-
-          {/* Masonry Asymmetric Grid with Real Gallery Images */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[240px]">
-            {/* Gallery Image 1: Main Group with Logo */}
-            <div className="col-span-1 sm:col-span-2 row-span-2 rounded-3xl overflow-hidden group relative shadow-xl border-2 border-brand-orange/20">
-              <img
-                src="/gallery/1.jpg"
-                alt="لمة الأصدقاء في مطعم نيو بورسعيد"
-                className="w-full h-full object-cover group-hover:scale-108 transition duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex items-end">
-                <span className="text-white font-bold text-lg font-aref">لمة الأحباب في قلب مطعم نيو بورسعيد</span>
-              </div>
-            </div>
-
-            {/* Gallery Image 2: Chef Serving Big Feast */}
-            <div className="row-span-2 rounded-3xl overflow-hidden group relative shadow-xl border-2 border-brand-orange/20">
-              <img
-                src="/gallery/2.jpg"
-                alt="الشيف يخدم العزومات والمشويات"
-                className="w-full h-full object-cover group-hover:scale-108 transition duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex items-end">
-                <span className="text-white font-bold text-base font-aref">خدمة فندقية وسفرة عزومات فاخرة</span>
-              </div>
-            </div>
-
-            {/* Gallery Image 3: Celebrations and Big Gathering */}
-            <div className="rounded-3xl overflow-hidden group relative shadow-xl border-2 border-brand-orange/20">
-              <img
-                src="/gallery/3.jpg"
-                alt="فرحة العائلات والاحتفالات"
-                className="w-full h-full object-cover group-hover:scale-108 transition duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 flex items-end">
-                <span className="text-white font-bold text-sm font-aref">أحلى الأوقات والاحتفالات</span>
-              </div>
-            </div>
-
-            {/* Gallery Image 4: Outdoor Terrace Gathering */}
-            <div className="rounded-3xl overflow-hidden group relative shadow-xl border-2 border-brand-orange/20">
-              <img
-                src="/gallery/4.jpg"
-                alt="جلسات التراس الخارجي المضيئة"
-                className="w-full h-full object-cover group-hover:scale-108 transition duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 flex items-end">
-                <span className="text-white font-bold text-sm font-aref">جلسات خارجية ساحرة</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <GallerySection />
 
       {/* ============================================================ */}
       {/* 6.5. TESTIMONIALS SECTION ("ريفيوهات بتحكي") */}
@@ -420,9 +344,11 @@ export default function Home() {
       <TestimonialsSection />
 
 
+
+
       {/* 7. BRANCH SECTION (SOHAG) */}
       {/* ============================================================ */}
-      <section id="branches" className="py-24 px-4 sm:px-6 lg:px-8 bg-brand-cream relative">
+      <section id="branches" className="pb-24 px-4 sm:px-6 lg:px-8 bg-brand-cream relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
             <span className="text-brand-orange font-aref text-2xl font-bold block">
@@ -551,6 +477,13 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+
+
+      {/* ============================================================ */}
+      {/* 6.8. SUGGESTIONS & COMPLAINTS SECTION */}
+      {/* ============================================================ */}
+      <FeedbackSection />
 
       {/* ============================================================ */}
       {/* 9. TABLE RESERVATION SECTION */}

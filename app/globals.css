@@ -73,7 +73,17 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, .font-serif, .font-aref, .font-heading {
+button {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-serif,
+.font-aref,
+.font-heading {
   font-family: var(--font-aref-ruqaa), 'ArefRuqaa', serif;
 }
 
@@ -129,6 +139,7 @@ h1, h2, h3, h4, .font-serif, .font-aref, .font-heading {
   0% {
     transform: translateX(0%);
   }
+
   100% {
     transform: translateX(-50%);
   }
@@ -144,3 +155,21 @@ h1, h2, h3, h4, .font-serif, .font-aref, .font-heading {
   animation-play-state: paused;
 }
 
+@keyframes marquee-ltr {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.animate-marquee-ltr {
+  display: flex;
+  width: max-content;
+  animation: marquee-ltr 36s linear infinite;
+}
+
+.animate-marquee-ltr:hover {
+  animation-play-state: paused;
+}

@@ -2,20 +2,20 @@
 
 import React from "react";
 import Link from "next/link";
-import { Phone, MapPin, Clock, Mail, Heart, ArrowUp } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Phone, MapPin, Clock, Heart } from "lucide-react";
 import { RESTAURANT_INFO } from "@/lib/data.js";
 
 export const Footer: React.FC = () => {
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
+  const pathname = usePathname();
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
   return (
     <footer
       className="text-white/90 pt-16 pb-8 border-t-4 border-brand-orange relative overflow-hidden bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage: "url('/footer-bg.png')",
-
       }}
     >
       {/* Decorative Brand Watermark */}
@@ -24,17 +24,19 @@ export const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12">
-          {/* Column 1: Brand Info & Logo */}
-          <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 pb-12">
+          {/* Column 1: Brand Info & Social */}
+          <div className="space-y-5">
             <div className="flex items-center gap-3">
               <img
                 src="/logo.png"
                 alt="شعار نيو بورسعيد"
-                className="h-16 w-auto object-contain "
+                className="h-16 w-auto object-contain drop-shadow-md"
               />
               <div>
-
+                <h3 className="text-2xl font-bold font-aref text-white">
+                  {RESTAURANT_INFO.name}
+                </h3>
                 <p className="text-xs text-brand-orange font-semibold tracking-wider">
                   {RESTAURANT_INFO.tagline}
                 </p>
@@ -42,11 +44,11 @@ export const Footer: React.FC = () => {
             </div>
 
             <p className="text-sm leading-relaxed text-white/70 max-w-sm">
-              أكثر من ٥ سنوات من الشغف في تقديم أشهى المشويات على الفحم والطواجن المصرية والصواني العائلية الفاخرة. أكل بشوات على أصوله.
+              أكثر من ٥ سنوات من الشغف في تقديم أشهى المشويات على الفحم والطواجن المصرية والصواني العائلية الفاخرة في قلب سوهاج.
             </p>
 
-            {/* Social Media Links */}
-            <div className="flex items-center gap-3 pt-2">
+            {/* Social Links */}
+            <div className="flex items-center gap-3 pt-1">
               <a
                 href="https://facebook.com"
                 target="_blank"
@@ -74,87 +76,42 @@ export const Footer: React.FC = () => {
 
           {/* Column 2: Quick Links */}
           <div>
-            <h4 className="text-white font-bold text-lg mb-6 font-aref flex items-center gap-2">
+            <h4 className="text-white font-bold text-lg mb-5 font-aref flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-brand-orange"></span>
-              أقسام القائمة
+              روابط سريعة
             </h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/menu#grills" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
-                  <span>←</span> قسم المشويات عالفحم
+                <Link href="/" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
+                  <span>←</span> الصفحة الرئيسية
                 </Link>
               </li>
               <li>
-                <Link href="/menu#trays" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
-                  <span>←</span> قسم الصواني والعزومات
+                <Link href="/menu" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
+                  <span>←</span> قائمة الطعام الكاملة (المنيو)
                 </Link>
               </li>
               <li>
-                <Link href="/menu#tajines" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
-                  <span>←</span> قسم طواجن الفخار
+                <Link href="/cart" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
+                  <span>←</span> سلة المأكولات والطلبات
                 </Link>
               </li>
               <li>
-                <Link href="/menu#oriental" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
-                  <span>←</span> المطبخ الشرقي والفتات
+                <Link href="/#branches" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
+                  <span>←</span> موقعنا في سوهاج
                 </Link>
               </li>
               <li>
-                <Link href="/menu#mandi" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
-                  <span>←</span> مندي بالبرميل
-                </Link>
-              </li>
-              <li>
-                <Link href="/#reserve" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
-                  <span>←</span> حجز طاولة خاصة
+                <Link href="/#feedback" className="hover:text-brand-orange hover:mr-1 transition-all flex items-center gap-2">
+                  <span>←</span> صندوق الاقتراحات والشكاوى
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: Best Sellers */}
+          {/* Column 3: Contact & Working Hours */}
           <div>
-            <h4 className="text-white font-bold text-lg mb-6 font-aref flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-brand-orange"></span>
-              أشهر الأصناف
-            </h4>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-center justify-between border-b border-white/10 pb-2">
-                <Link href="/menu#grills" className="hover:text-brand-orange transition">
-                  ميكس بورسعيد
-                </Link>
-                <span className="text-brand-orange font-bold text-xs font-sans">450 ج.م</span>
-              </li>
-              <li className="flex items-center justify-between border-b border-white/10 pb-2">
-                <Link href="/menu#grills" className="hover:text-brand-orange transition">
-                  طبق الملوك
-                </Link>
-                <span className="text-brand-orange font-bold text-xs font-sans">470 ج.م</span>
-              </li>
-              <li className="flex items-center justify-between border-b border-white/10 pb-2">
-                <Link href="/menu#trays" className="hover:text-brand-orange transition">
-                  صينية العمدة
-                </Link>
-                <span className="text-brand-orange font-bold text-xs font-sans">880 ج.م</span>
-              </li>
-              <li className="flex items-center justify-between border-b border-white/10 pb-2">
-                <Link href="/menu#tajines" className="hover:text-brand-orange transition">
-                  طاجن بورسعيد (ضلوع + ورق عنب)
-                </Link>
-                <span className="text-brand-orange font-bold text-xs font-sans">460 ج.م</span>
-              </li>
-              <li className="flex items-center justify-between">
-                <Link href="/menu#oriental" className="hover:text-brand-orange transition">
-                  موزة ضاني فتة
-                </Link>
-                <span className="text-brand-orange font-bold text-xs font-sans">450 ج.م</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 4: Contact & Working Hours */}
-          <div>
-            <h4 className="text-white font-bold text-lg mb-6 font-aref flex items-center gap-2">
+            <h4 className="text-white font-bold text-lg mb-5 font-aref flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-brand-orange"></span>
               خدمة العملاء والاتصال
             </h4>
@@ -165,7 +122,7 @@ export const Footer: React.FC = () => {
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-brand-orange shrink-0" />
-                <div className="flex flex-col gap-0.5">
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
                   {RESTAURANT_INFO.phones.map((phone) => (
                     <a
                       key={phone}
@@ -182,7 +139,7 @@ export const Footer: React.FC = () => {
                 <Clock className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-white">مواعيد العمل:</p>
-                  <p className="text-xs text-white/70">يومياً من ١٢:٠٠ ظهراً حتى ٠٢:٠٠ صباحاً</p>
+                  <p className="text-xs text-white/70">يومياً من ١٢:٠٠ ظهراً حتى ٠٢:٠٠ بعد منتصف الليل</p>
                 </div>
               </li>
             </ul>
@@ -195,10 +152,12 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-1 text-white/70">
             <span>أكل بشوات</span>
             <Heart className="w-3.5 h-3.5 text-brand-orange fill-brand-orange inline mx-1" />
-            <span>بكل فخر ومحبة</span>
+            <span>بكل فخر ومحبة لأهل سوهاج</span>
           </div>
         </div>
       </div>
     </footer>
   );
 };
+
+export default Footer;

@@ -4,9 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Lock,
-  Unlock,
   KeyRound,
-  LayoutDashboard,
   UtensilsCrossed,
   Layers,
   Settings,
@@ -18,18 +16,19 @@ import {
   X,
   Search,
   RefreshCw,
-  Eye,
-  EyeOff,
   Save,
   Phone,
-  MapPin,
-  Clock,
   Sparkles,
   ExternalLink,
   Copy,
   AlertCircle,
   CheckCircle2,
-  SlidersHorizontal,
+  Star,
+  MessageSquareHeart,
+  Inbox,
+  Lightbulb,
+  ShieldAlert,
+  Send,
 } from "lucide-react";
 import {
   getMenuCategoriesWithItems,
@@ -40,9 +39,17 @@ import {
   upsertCategory,
   deleteCategory,
   seedDatabaseFromDataJS,
+  getAllCustomerReviewsAdmin,
+  updateReviewStatus,
+  deleteCustomerReview,
+  getAllFeedbackAdmin,
+  markFeedbackAsRead,
+  deleteFeedback,
   DbCategory,
   DbMenuItem,
   DbRestaurantSettings,
+  DbCustomerReview,
+  DbFeedback,
 } from "@/lib/dbService";
 
 export default function AdminPage() {
@@ -53,16 +60,22 @@ export default function AdminPage() {
   const [authError, setAuthError] = useState("");
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<"items" | "categories" | "settings" | "database">("items");
+  const [activeTab, setActiveTab] = useState<
+    "items" | "categories" | "reviews" | "feedback" | "settings" | "database"
+  >("items");
 
   // Data States
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [settings, setSettings] = useState<DbRestaurantSettings | null>(null);
+  const [reviews, setReviews] = useState<DbCustomerReview[]>([]);
+  const [feedbackList, setFeedbackList] = useState<DbFeedback[]>([]);
 
   // Filter & Search
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
+  const [reviewFilter, setReviewFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [feedbackFilter, setFeedbackFilter] = useState<"all" | "unread" | "suggestion" | "complaint">("all");
 
   // Item Modal State
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -102,12 +115,16 @@ export default function AdminPage() {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [cats, setts] = await Promise.all([
+      const [cats, setts, revs, fbs] = await Promise.all([
         getMenuCategoriesWithItems(),
         getRestaurantSettings(),
+        getAllCustomerReviewsAdmin(),
+        getAllFeedbackAdmin(),
       ]);
       setCategories(cats);
       setSettings(setts);
+      setReviews(revs || []);
+      setFeedbackList(fbs || []);
     } catch (err: any) {
       console.error("Error loading data:", err);
       showToast("تعذر جلب البيانات من السيرفر. يتم استخدام البيانات المخزنة.", "error");
@@ -128,34 +145,35 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem("new_portsaid_admin_auth");
-    setPinInput("");
-  };
-
   // Change PIN Handler
   const handleChangePin = () => {
-    const newPin = prompt("أدخل رمز المرور الجديد (٤ أرقام أو أكثر):");
-    if (newPin && newPin.trim().length >= 4) {
-      setSavedPin(newPin.trim());
-      localStorage.setItem("new_portsaid_admin_pin", newPin.trim());
-      showToast("تم تحديث رمز الدخول بنجاح!");
-    } else if (newPin) {
-      alert("يجب أن يتكون رمز المرور من 4 خانات على الأقل.");
+    const newPin = prompt("أدخل رمز PIN الجديد المكون من 4 إلى 8 أرقام:");
+    if (!newPin || newPin.trim().length < 4) {
+      alert("يجب أن يتكون الرمز من 4 أرقام على الأقل");
+      return;
     }
+    setSavedPin(newPin.trim());
+    localStorage.setItem("new_portsaid_admin_pin", newPin.trim());
+    showToast("تم تحديث رمز PIN بنجاح!");
+  };
+
+  // Logout Handler
+  const handleLogout = () => {
+    sessionStorage.removeItem("new_portsaid_admin_auth");
+    setIsAuthenticated(false);
+    setPinInput("");
   };
 
   // ----------------------------------------------------
   // ITEM HANDLERS
   // ----------------------------------------------------
-  const handleOpenItemModal = (item?: DbMenuItem, defaultCategoryId?: string) => {
+  const handleOpenItemModal = (item?: DbMenuItem) => {
     if (item) {
       setEditingItem({ ...item });
     } else {
       setEditingItem({
         id: "",
-        category_id: defaultCategoryId || (categories[0]?.id ?? "grills"),
+        category_id: categories[0]?.id || "grills",
         name: "",
         price: 0,
         is_daily: false,
@@ -270,12 +288,12 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteCategory = async (catId: string, title: string) => {
-    if (!confirm(`تحذير: حذف قسم "${title}" سيحذف جميع الأصناف التابعة له. هل أنت متأكد؟`)) return;
+  const handleDeleteCategory = async (catId: string, catTitle: string) => {
+    if (!confirm(`تحذير: سيتم حذف قسم "${catTitle}" وجميع الأطباق التابعة له. هل أنت متأكد؟`)) return;
 
     try {
       await deleteCategory(catId);
-      showToast(`تم حذف قسم "${title}"`);
+      showToast(`تم حذف قسم "${catTitle}"`);
       loadAllData();
     } catch (err: any) {
       console.error(err);
@@ -284,7 +302,64 @@ export default function AdminPage() {
   };
 
   // ----------------------------------------------------
-  // SETTINGS HANDLERS
+  // REVIEWS HANDLERS
+  // ----------------------------------------------------
+  const handleSetReviewStatus = async (reviewId: string, status: "approved" | "rejected" | "pending") => {
+    try {
+      await updateReviewStatus(reviewId, status);
+      showToast(
+        status === "approved"
+          ? "تم قبول ونشر التقييم في الموقع بنجاح!"
+          : status === "rejected"
+          ? "تم رفض وتجاهل التقييم"
+          : "تم تعيين التقييم كقيد المراجعة"
+      );
+      loadAllData();
+    } catch (err) {
+      console.error(err);
+      showToast("حدث خطأ أثناء تحديث حالة التقييم", "error");
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!confirm("هل أنت متأكد من حذف هذا التقييم نهائياً؟")) return;
+    try {
+      await deleteCustomerReview(reviewId);
+      showToast("تم حذف التقييم نهائياً");
+      loadAllData();
+    } catch (err) {
+      console.error(err);
+      showToast("تعذر حذف التقييم", "error");
+    }
+  };
+
+  // ----------------------------------------------------
+  // FEEDBACK HANDLERS
+  // ----------------------------------------------------
+  const handleToggleFeedbackRead = async (feedbackId: string, currentRead: boolean) => {
+    try {
+      await markFeedbackAsRead(feedbackId, !currentRead);
+      showToast(!currentRead ? "تم تمييز الرسالة كمقروءة" : "تم تمييز الرسالة كغير مقروءة");
+      loadAllData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteFeedbackItem = async (feedbackId: string) => {
+    if (!confirm("هل أنت متأكد من حذف هذه الرسالة؟")) return;
+    try {
+      await deleteFeedback(feedbackId);
+      showToast("تم حذف الرسالة بنجاح");
+      loadAllData();
+    } catch (err) {
+      console.error(err);
+      showToast("تعذر حذف الرسالة", "error");
+    }
+  };
+
+  // ----------------------------------------------------
+  // SETTINGS HANDLER
   // ----------------------------------------------------
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,28 +367,27 @@ export default function AdminPage() {
 
     try {
       await updateRestaurantSettings(settings);
-      showToast("تم حفظ معلومات المطعم بنجاح!");
+      showToast("تم تحديث وحفظ بيانات المطعم بنجاح!");
     } catch (err: any) {
       console.error(err);
-      showToast("حدث خطأ أثناء حفظ الإعدادات", "error");
+      showToast("تعذر حفظ الإعدادات", "error");
     }
   };
 
   // ----------------------------------------------------
-  // DATABASE SEEDING
+  // 1-CLICK DATABASE SEEDING
   // ----------------------------------------------------
   const handleSeedDatabase = async () => {
-    if (!confirm("هل تريد نقل جميع الأقسام والأصناف من المنيو إلى قاعدة بيانات Supabase؟")) return;
+    if (!confirm("هل ترغب في رفع وتهيئة جميع الأقسام والـ 152 صنفاً من data.js إلى قاعدة بيانات Supabase؟")) return;
 
     setSeedingLoading(true);
     try {
       const res = await seedDatabaseFromDataJS();
       showToast(res.message);
-      loadAllData();
+      await loadAllData();
     } catch (err: any) {
       console.error(err);
-      alert(err.message);
-      showToast("فشلت عملية النقل. يرجى تشغيل سكربت SQL في Supabase أولاً.", "error");
+      showToast(err.message || "حدث خطأ أثناء نقل البيانات.", "error");
     } finally {
       setSeedingLoading(false);
     }
@@ -336,12 +410,24 @@ export default function AdminPage() {
     return matchesCat && matchesQuery;
   });
 
+  const filteredReviews = reviews.filter((r) => {
+    if (reviewFilter === "all") return true;
+    return r.status === reviewFilter;
+  });
+
+  const filteredFeedback = feedbackList.filter((f) => {
+    if (feedbackFilter === "unread") return !f.is_read;
+    if (feedbackFilter === "suggestion") return f.type === "suggestion";
+    if (feedbackFilter === "complaint") return f.type === "complaint";
+    return true;
+  });
+
   // ----------------------------------------------------
   // 1. PIN LOGIN SCREEN
   // ----------------------------------------------------
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-brand-cream/80 flex items-center justify-center p-4 pt-20">
+      <div className="min-h-screen bg-brand-cream/80 flex items-center justify-center p-4 pt-20" dir="rtl">
         <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-10 max-w-md w-full border-2 border-brand-orange/30 text-center space-y-6 animate-in zoom-in-95 duration-300">
           <div className="w-20 h-20 bg-brand-orange/15 text-brand-orange rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-brand-orange/30">
             <Lock className="w-10 h-10" />
@@ -352,7 +438,7 @@ export default function AdminPage() {
               لوحة تحكم مطعم نيو بورسعيد
             </h1>
             <p className="text-xs sm:text-sm text-brand-muted">
-              أدخل رمز المرور (PIN) للوصول إلى إدارة المنيو والمنتجات
+              أدخل رمز المرور (PIN) للوصول إلى إدارة المنيو والطلبات والتقييمات
             </p>
           </div>
 
@@ -395,15 +481,20 @@ export default function AdminPage() {
   }
 
   // ----------------------------------------------------
-  // 2. MAIN ADMIN DASHBOARD
+  // 2. AUTHENTICATED ADMIN DASHBOARD
   // ----------------------------------------------------
+  const pendingReviewsCount = reviews.filter((r) => r.status === "pending").length;
+  const unreadFeedbackCount = feedbackList.filter((f) => !f.is_read).length;
+
   return (
-    <div className="min-h-screen bg-brand-cream/40 pb-20 pt-24 sm:pt-28">
+    <div className="min-h-screen bg-brand-cream/60 py-8 sm:py-12 px-4 sm:px-6 lg:px-8" dir="rtl">
       {/* Toast Notification */}
       {toastMessage && (
         <div
-          className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-2 animate-in slide-in-from-top duration-300 text-white ${
-            toastMessage.type === "success" ? "bg-green-600 shadow-green-500/30" : "bg-red-600 shadow-red-500/30"
+          className={`fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-2 border animate-in slide-in-from-bottom-5 duration-300 ${
+            toastMessage.type === "success"
+              ? "bg-green-600 text-white border-green-500"
+              : "bg-red-600 text-white border-red-500"
           }`}
         >
           {toastMessage.type === "success" ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
@@ -411,25 +502,27 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Top Header & Fast Actions */}
-        <div className="bg-gradient-to-r from-brand-dark via-brand-dark/95 to-brand-brown text-white p-6 sm:p-8 rounded-3xl shadow-xl border-2 border-brand-orange/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Dashboard Top Header */}
+        <div className="bg-brand-dark text-white rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-2 z-10">
+            <div className="flex items-center gap-3">
               <span className="bg-brand-orange text-white text-xs font-bold px-3 py-1 rounded-full">
-                لوحة الإدارة السحابية
+                لوحة الإدارة الشاملة
               </span>
-              <span className="text-xs text-amber-300">Supabase Connected 🟢</span>
+              <span className="text-xs text-amber-300/80 font-sans">
+                Supabase Connected 🟢
+              </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold font-aref text-white">
-              لوحة تحكم مطعم نيو بورسعيد
+            <h1 className="text-3xl sm:text-4xl font-bold font-aref">
+              إدارة مطعم نيو بورسعيد
             </h1>
-            <p className="text-white/80 text-xs sm:text-sm">
-              إدارة المنتجات، قوائم الطعام، التصنيفات، ومعلومات الاتصال المباشرة
+            <p className="text-xs sm:text-sm text-white/70">
+              تحكم كامل في الأطباق، الأسعار، التقييمات، الشكاوى والإعدادات
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 z-10">
             <button
               onClick={loadAllData}
               disabled={loading}
@@ -445,7 +538,7 @@ export default function AdminPage() {
               className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white border border-white/20 transition flex items-center gap-2 text-xs font-bold"
             >
               <KeyRound className="w-4 h-4 text-amber-300" />
-              <span>تغيير الـ PIN</span>
+              <span>تغيير PIN</span>
             </button>
 
             <Link
@@ -454,7 +547,7 @@ export default function AdminPage() {
               className="p-3 bg-brand-orange hover:bg-orange-600 rounded-2xl text-white font-bold text-xs flex items-center gap-2 transition shadow-md"
             >
               <ExternalLink className="w-4 h-4" />
-              <span>عرض المنيو الحي</span>
+              <span>المنيو الحي</span>
             </Link>
 
             <button
@@ -471,14 +564,6 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-orange/15 space-y-1">
             <div className="flex items-center justify-between text-brand-muted text-xs">
-              <span>إجمالي الأقسام</span>
-              <Layers className="w-4 h-4 text-brand-orange" />
-            </div>
-            <p className="text-3xl font-extrabold font-sans text-brand-brown">{categories.length}</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-orange/15 space-y-1">
-            <div className="flex items-center justify-between text-brand-muted text-xs">
               <span>إجمالي الأطباق</span>
               <UtensilsCrossed className="w-4 h-4 text-brand-orange" />
             </div>
@@ -487,73 +572,109 @@ export default function AdminPage() {
 
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-orange/15 space-y-1">
             <div className="flex items-center justify-between text-brand-muted text-xs">
-              <span>الأطباق المتاحة</span>
-              <span className="text-green-600 font-bold text-xs">متاح 🟢</span>
+              <span>إجمالي الأقسام</span>
+              <Layers className="w-4 h-4 text-brand-orange" />
             </div>
-            <p className="text-3xl font-extrabold font-sans text-green-600">
-              {allItems.filter((i) => i.is_available !== false).length}
+            <p className="text-3xl font-extrabold font-sans text-brand-brown">{categories.length}</p>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-orange/15 space-y-1">
+            <div className="flex items-center justify-between text-brand-muted text-xs">
+              <span>تقييمات جديدة للمراجعة</span>
+              <Star className="w-4 h-4 text-amber-500" />
+            </div>
+            <p className="text-3xl font-extrabold font-sans text-amber-500">
+              {pendingReviewsCount}
             </p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-orange/15 space-y-1">
             <div className="flex items-center justify-between text-brand-muted text-xs">
-              <span>غير متوفر حالياً</span>
-              <span className="text-red-500 font-bold text-xs">نفذت الكمية 🔴</span>
+              <span>شكاوى واقتراحات غير مقروءة</span>
+              <Inbox className="w-4 h-4 text-red-500" />
             </div>
             <p className="text-3xl font-extrabold font-sans text-red-500">
-              {allItems.filter((i) => i.is_available === false).length}
+              {unreadFeedbackCount}
             </p>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar border-b border-brand-orange/20">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar border-b border-brand-orange/20">
           <button
             onClick={() => setActiveTab("items")}
-            className={`px-5 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shrink-0 ${
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
               activeTab === "items"
                 ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
                 : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
             }`}
           >
             <UtensilsCrossed className="w-4 h-4" />
-            <span>إدارة الأطباق والمنيو ({allItems.length})</span>
+            <span>الأطباق والمنيو ({allItems.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("categories")}
-            className={`px-5 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shrink-0 ${
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
               activeTab === "categories"
                 ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
                 : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>إدارة الأقسام ({categories.length})</span>
+            <span>الأقسام ({categories.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("reviews")}
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
+              activeTab === "reviews"
+                ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
+                : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
+            }`}
+          >
+            <MessageSquareHeart className="w-4 h-4" />
+            <span>
+              إدارة التقييمات {pendingReviewsCount > 0 && `(🔔 ${pendingReviewsCount})`}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("feedback")}
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
+              activeTab === "feedback"
+                ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
+                : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
+            }`}
+          >
+            <Inbox className="w-4 h-4" />
+            <span>
+              صندوق الشكاوى والاقتراحات {unreadFeedbackCount > 0 && `(🔴 ${unreadFeedbackCount})`}
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab("settings")}
-            className={`px-5 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shrink-0 ${
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
               activeTab === "settings"
                 ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
                 : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
             }`}
           >
             <Settings className="w-4 h-4" />
-            <span>بيانات المطعم والاتصال</span>
+            <span>بيانات المطعم</span>
           </button>
 
           <button
             onClick={() => setActiveTab("database")}
-            className={`px-5 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shrink-0 ${
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
               activeTab === "database"
                 ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
                 : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
             }`}
           >
             <Database className="w-4 h-4" />
-            <span>التهيئة وربط Supabase</span>
+            <span>قاعدة البيانات والنقل</span>
           </button>
         </div>
 
@@ -562,31 +683,29 @@ export default function AdminPage() {
         {/* ---------------------------------------------------- */}
         {activeTab === "items" && (
           <div className="space-y-6">
-            {/* Search, Filter & Add Item Button */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-              <div className="flex flex-1 items-center gap-3">
-                {/* Search */}
+            {/* Search & Actions Bar */}
+            <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-brand-orange/15 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex flex-1 items-center gap-3 w-full md:w-auto">
                 <div className="relative flex-1 max-w-md">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="ابحث عن طبق أو وصف..."
-                    className="w-full bg-white pr-10 pl-4 py-2.5 rounded-xl border border-brand-orange/20 focus:border-brand-orange outline-none text-sm"
+                    placeholder="ابحث عن طبق بالاسم أو الوصف..."
+                    className="w-full bg-brand-cream/50 pr-10 pl-4 py-3 rounded-2xl border border-brand-orange/20 focus:border-brand-orange outline-none text-sm"
                   />
-                  <Search className="w-4 h-4 text-brand-orange absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-4 h-4 text-brand-muted absolute top-3.5 right-3.5" />
                 </div>
 
-                {/* Category Filter */}
                 <select
                   value={selectedCategoryFilter}
                   onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                  className="bg-white px-4 py-2.5 rounded-xl border border-brand-orange/20 focus:border-brand-orange outline-none text-sm font-bold text-brand-brown"
+                  className="bg-brand-cream/50 px-4 py-3 rounded-2xl border border-brand-orange/20 text-xs sm:text-sm font-bold text-brand-brown outline-none"
                 >
-                  <option value="all">كل الأقسام ({allItems.length})</option>
+                  <option value="all">جميع الأقسام ({allItems.length})</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.title} ({c.items?.length || 0})
+                      {c.title} ({(c.items || []).length})
                     </option>
                   ))}
                 </select>
@@ -594,109 +713,89 @@ export default function AdminPage() {
 
               <button
                 onClick={() => handleOpenItemModal()}
-                className="bg-gradient-to-r from-brand-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition"
+                className="w-full md:w-auto px-6 py-3.5 bg-gradient-to-r from-brand-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
                 <span>إضافة طبق جديد</span>
               </button>
             </div>
 
             {/* Items Table */}
-            <div className="bg-white rounded-3xl shadow-xl border border-brand-orange/15 overflow-hidden">
+            <div className="bg-white rounded-3xl shadow-sm border border-brand-orange/15 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-sm">
-                  <thead className="bg-brand-cream/80 text-brand-brown font-bold border-b border-brand-orange/15 text-xs">
+                  <thead className="bg-brand-cream/80 text-brand-brown font-aref text-sm border-b border-brand-orange/15">
                     <tr>
-                      <th className="p-4">اسم الطبق</th>
+                      <th className="p-4">الطبق</th>
                       <th className="p-4">القسم</th>
                       <th className="p-4">السعر</th>
                       <th className="p-4">الشارة</th>
                       <th className="p-4">الحالة</th>
-                      <th className="p-4 text-center">إجراءات</th>
+                      <th className="p-4 text-center">الإجراءات</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 font-medium">
                     {filteredItems.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-brand-muted">
-                          لا توجد نتائج مطابقة لبحثك.
+                          لم يتم العثور على أطباق مطابقة للبحث
                         </td>
                       </tr>
                     ) : (
                       filteredItems.map((item) => (
-                        <tr
-                          key={item.id}
-                          className={`hover:bg-brand-cream/30 transition ${
-                            item.is_available === false ? "opacity-60 bg-gray-50" : ""
-                          }`}
-                        >
+                        <tr key={item.id} className="hover:bg-brand-cream/30 transition">
                           <td className="p-4">
-                            <div className="font-bold text-brand-brown font-aref text-base">{item.name}</div>
+                            <div className="font-bold text-brand-brown text-base">{item.name}</div>
                             {item.description && (
-                              <div className="text-xs text-brand-muted line-clamp-1 max-w-xs">{item.description}</div>
+                              <div className="text-xs text-brand-muted max-w-xs truncate">{item.description}</div>
                             )}
                           </td>
-
                           <td className="p-4">
-                            <span className="bg-brand-orange/10 text-brand-orange text-xs font-bold px-2.5 py-1 rounded-lg">
+                            <span className="bg-brand-cream px-3 py-1 rounded-full text-xs font-bold text-brand-brown border border-brand-orange/15">
                               {item.categoryTitle}
                             </span>
                           </td>
-
-                          <td className="p-4 font-bold font-sans text-brand-brown">
-                            {item.is_daily || item.price === "يومي" ? (
-                              <span className="text-xs text-brand-orange">يومي</span>
-                            ) : (
-                              <span>{item.price} ج.م</span>
-                            )}
+                          <td className="p-4 font-bold font-sans text-brand-orange">
+                            {item.is_daily ? "سعر يومي" : `${item.price} ج.م`}
                           </td>
-
                           <td className="p-4">
                             {item.badge ? (
-                              <span className="bg-brand-gold/20 text-brand-brown text-[11px] font-bold px-2 py-0.5 rounded-full border border-brand-gold/40">
+                              <span className="bg-brand-orange/10 text-brand-orange text-xs font-bold px-2.5 py-0.5 rounded-full">
                                 {item.badge}
                               </span>
                             ) : (
-                              <span className="text-gray-300">-</span>
+                              <span className="text-gray-300 text-xs">-</span>
                             )}
                           </td>
-
                           <td className="p-4">
                             <button
                               onClick={() => handleToggleItemAvailability(item)}
-                              className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition shadow-xs ${
+                              className={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
                                 item.is_available !== false
                                   ? "bg-green-100 text-green-700 hover:bg-green-200"
                                   : "bg-red-100 text-red-700 hover:bg-red-200"
                               }`}
                             >
-                              {item.is_available !== false ? (
-                                <>
-                                  <Check className="w-3 h-3" />
-                                  <span>متاح</span>
-                                </>
-                              ) : (
-                                <>
-                                  <X className="w-3 h-3" />
-                                  <span>غير متوفر</span>
-                                </>
-                              )}
+                              <span
+                                className={`w-2 h-2 rounded-full ${
+                                  item.is_available !== false ? "bg-green-500" : "bg-red-500"
+                                }`}
+                              />
+                              <span>{item.is_available !== false ? "متوفر" : "نفذ"}</span>
                             </button>
                           </td>
-
                           <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => handleOpenItemModal(item)}
-                                className="p-2 rounded-xl bg-gray-100 hover:bg-brand-orange hover:text-white text-gray-700 transition"
+                                className="p-2 bg-brand-cream hover:bg-brand-orange hover:text-white rounded-xl text-brand-brown transition"
                                 title="تعديل"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
-
                               <button
                                 onClick={() => handleDeleteItem(item.id, item.name)}
-                                className="p-2 rounded-xl bg-red-50 hover:bg-red-600 hover:text-white text-red-600 transition"
+                                className="p-2 bg-red-50 hover:bg-red-600 hover:text-white rounded-xl text-red-600 transition"
                                 title="حذف"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -718,15 +817,18 @@ export default function AdminPage() {
         {/* ---------------------------------------------------- */}
         {activeTab === "categories" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-brand-orange/15">
               <div>
-                <h3 className="text-xl font-bold font-aref text-brand-brown">أقسام قائمة الطعام ({categories.length})</h3>
-                <p className="text-xs text-brand-muted">يمكنك تعديل صور الأغلفة والأسماء والأوصاف لكل قسم</p>
+                <h3 className="font-aref font-bold text-xl text-brand-brown">
+                  أقسام المنيو الرئيسية ({categories.length})
+                </h3>
+                <p className="text-xs text-brand-muted">
+                  يمكنك تعديل أسماء الأقسام، الصور، والأوصاف التوضيحية
+                </p>
               </div>
-
               <button
                 onClick={() => handleOpenCategoryModal()}
-                className="bg-brand-orange hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow flex items-center gap-2 transition"
+                className="px-6 py-3.5 bg-brand-orange hover:bg-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/25 flex items-center gap-2 transition text-sm"
               >
                 <Plus className="w-4 h-4" />
                 <span>إضافة قسم جديد</span>
@@ -737,43 +839,41 @@ export default function AdminPage() {
               {categories.map((cat) => (
                 <div
                   key={cat.id}
-                  className="bg-white rounded-3xl overflow-hidden shadow-lg border border-brand-orange/15 flex flex-col justify-between group hover:border-brand-orange/40 transition"
+                  className="bg-white rounded-3xl overflow-hidden shadow-sm border border-brand-orange/15 group hover:shadow-xl transition-all"
                 >
-                  <div className="relative h-44 w-full bg-gray-100">
-                    <img src={cat.image} alt={cat.title} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                    <div className="absolute bottom-3 right-4 text-white">
-                      <span className="text-[10px] text-amber-300 font-bold uppercase">{cat.titleEn}</span>
+                  <div className="h-40 relative bg-gray-100 overflow-hidden">
+                    <img
+                      src={cat.image || "/footer-bg.png"}
+                      alt={cat.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 flex flex-col justify-end text-white">
                       <h4 className="font-aref font-bold text-2xl">{cat.title}</h4>
-                    </div>
-                    <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-xs font-bold">
-                      {cat.items?.length || 0} طبق
+                      {cat.titleEn && <p className="text-xs text-amber-300 font-sans">{cat.titleEn}</p>}
                     </div>
                   </div>
 
                   <div className="p-5 space-y-4">
-                    <p className="text-xs text-brand-muted line-clamp-2">{cat.description}</p>
+                    <p className="text-xs text-brand-muted line-clamp-2">
+                      {cat.description || "لا يوجد وصف مدخل لهذا القسم"}
+                    </p>
 
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <button
-                        onClick={() => handleOpenItemModal(undefined, cat.id)}
-                        className="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>أضف طبق لهذا القسم</span>
-                      </button>
+                      <span className="text-xs font-bold text-brand-orange bg-brand-cream px-3 py-1 rounded-full border border-brand-orange/15">
+                        {(cat.items || []).length} أصناف
+                      </span>
 
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleOpenCategoryModal(cat)}
-                          className="p-2 rounded-xl bg-gray-100 hover:bg-brand-orange hover:text-white transition"
+                          className="p-2 bg-brand-cream hover:bg-brand-orange hover:text-white rounded-xl text-brand-brown transition"
                           title="تعديل القسم"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteCategory(cat.id, cat.title)}
-                          className="p-2 rounded-xl bg-red-50 hover:bg-red-600 hover:text-white text-red-600 transition"
+                          className="p-2 bg-red-50 hover:bg-red-600 hover:text-white rounded-xl text-red-600 transition"
                           title="حذف القسم"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -788,14 +888,297 @@ export default function AdminPage() {
         )}
 
         {/* ---------------------------------------------------- */}
-        {/* TAB 3: RESTAURANT & CONTACT SETTINGS */}
+        {/* TAB 3: REVIEWS MODERATION (NEW!) */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === "reviews" && (
+          <div className="space-y-6">
+            {/* Filter Bar */}
+            <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-brand-orange/15 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setReviewFilter("all")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    reviewFilter === "all" ? "bg-brand-brown text-white" : "bg-brand-cream text-brand-brown"
+                  }`}
+                >
+                  الكل ({reviews.length})
+                </button>
+                <button
+                  onClick={() => setReviewFilter("pending")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    reviewFilter === "pending" ? "bg-amber-500 text-white" : "bg-brand-cream text-amber-700"
+                  }`}
+                >
+                  قيد المراجعة ({pendingReviewsCount})
+                </button>
+                <button
+                  onClick={() => setReviewFilter("approved")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    reviewFilter === "approved" ? "bg-green-600 text-white" : "bg-brand-cream text-green-700"
+                  }`}
+                >
+                  معتمدة في الموقع ({reviews.filter((r) => r.status === "approved").length})
+                </button>
+              </div>
+
+              <span className="text-xs text-brand-muted">
+                التقييمات المعتمدة تظهر فوراً في شريط التقييمات بالصفحة الرئيسية
+              </span>
+            </div>
+
+            {/* Reviews Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredReviews.length === 0 ? (
+                <div className="col-span-full bg-white rounded-3xl p-12 text-center text-brand-muted">
+                  لا توجد تقييمات مطابقة لهذا الفلتر حالياً
+                </div>
+              ) : (
+                filteredReviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className={`bg-white rounded-3xl p-6 shadow-sm border-2 transition-all space-y-4 flex flex-col justify-between ${
+                      rev.status === "approved"
+                        ? "border-green-500/30"
+                        : rev.status === "pending"
+                        ? "border-amber-500/40 bg-amber-50/20"
+                        : "border-red-400/30 bg-red-50/10"
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* Top Meta */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < rev.rating ? "fill-brand-orange text-brand-orange" : "text-gray-200"
+                              }`}
+                            />
+                          ))}
+                        </div>
+
+                        <span
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                            rev.status === "approved"
+                              ? "bg-green-100 text-green-700"
+                              : rev.status === "pending"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {rev.status === "approved" ? "معتمد ومنشور" : rev.status === "pending" ? "بانتظار الموافقة" : "مرفوض"}
+                        </span>
+                      </div>
+
+                      {/* Comment */}
+                      <p className="text-brand-brown text-sm sm:text-base font-semibold leading-relaxed">
+                        "{rev.comment}"
+                      </p>
+
+                      {/* Customer Info */}
+                      <div className="pt-2 text-xs text-brand-muted space-y-0.5 border-t border-gray-100">
+                        <div className="font-bold text-brand-brown">{rev.name}</div>
+                        {rev.phone && (
+                          <div className="font-sans text-[11px]" dir="ltr">
+                            {rev.phone}
+                          </div>
+                        )}
+                        {rev.created_at && (
+                          <div className="text-[10px] text-gray-400">
+                            {new Date(rev.created_at).toLocaleDateString("ar-EG")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
+                      {rev.status !== "approved" ? (
+                        <button
+                          onClick={() => handleSetReviewStatus(rev.id, "approved")}
+                          className="flex-1 py-2 px-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-1"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>قبول ونشر</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSetReviewStatus(rev.id, "rejected")}
+                          className="flex-1 py-2 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-1"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>إخفاء من الموقع</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleDeleteReview(rev.id)}
+                        className="p-2 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 rounded-xl transition"
+                        title="حذف التقييم نهائياً"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 4: FEEDBACK & COMPLAINTS INBOX (NEW!) */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === "feedback" && (
+          <div className="space-y-6">
+            {/* Filter Bar */}
+            <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-brand-orange/15 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setFeedbackFilter("all")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    feedbackFilter === "all" ? "bg-brand-brown text-white" : "bg-brand-cream text-brand-brown"
+                  }`}
+                >
+                  جميع الرسائل ({feedbackList.length})
+                </button>
+                <button
+                  onClick={() => setFeedbackFilter("unread")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    feedbackFilter === "unread" ? "bg-red-600 text-white" : "bg-brand-cream text-red-700"
+                  }`}
+                >
+                  غير مقروءة ({unreadFeedbackCount})
+                </button>
+                <button
+                  onClick={() => setFeedbackFilter("suggestion")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    feedbackFilter === "suggestion" ? "bg-amber-500 text-white" : "bg-brand-cream text-amber-700"
+                  }`}
+                >
+                  💡 اقتراحات ({feedbackList.filter((f) => f.type === "suggestion").length})
+                </button>
+                <button
+                  onClick={() => setFeedbackFilter("complaint")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                    feedbackFilter === "complaint" ? "bg-red-500 text-white" : "bg-brand-cream text-red-700"
+                  }`}
+                >
+                  ⚠️ شكاوى ({feedbackList.filter((f) => f.type === "complaint").length})
+                </button>
+              </div>
+
+              <span className="text-xs text-brand-muted">
+                يمكنك الاتصال بالعميل أو مراسلته عبر واتساب بنقرة واحدة
+              </span>
+            </div>
+
+            {/* Feedback List */}
+            <div className="space-y-4">
+              {filteredFeedback.length === 0 ? (
+                <div className="bg-white rounded-3xl p-12 text-center text-brand-muted">
+                  لا توجد رسائل في هذا الصندوق حالياً
+                </div>
+              ) : (
+                filteredFeedback.map((fb) => (
+                  <div
+                    key={fb.id}
+                    className={`bg-white rounded-3xl p-6 shadow-sm border-2 transition-all space-y-4 ${
+                      !fb.is_read ? "border-brand-orange bg-orange-50/20" : "border-gray-100"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                            fb.type === "suggestion"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {fb.type === "suggestion" ? <Lightbulb className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
+                          <span>{fb.type === "suggestion" ? "اقتراح تطوير" : "شكوى عميل"}</span>
+                        </span>
+
+                        <h4 className="font-bold text-brand-brown text-base">{fb.name}</h4>
+
+                        {!fb.is_read && (
+                          <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            جديد
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-brand-muted font-sans" dir="ltr">
+                        {fb.created_at ? new Date(fb.created_at).toLocaleString("ar-EG") : ""}
+                      </div>
+                    </div>
+
+                    <p className="text-brand-brown text-sm sm:text-base leading-relaxed bg-brand-cream/40 p-4 rounded-2xl border border-brand-orange/10 whitespace-pre-wrap">
+                      {fb.message}
+                    </p>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                      <div className="flex items-center gap-2">
+                        {/* Call Button */}
+                        <a
+                          href={`tel:${fb.phone}`}
+                          className="px-3.5 py-2 bg-brand-cream hover:bg-brand-orange hover:text-white rounded-xl text-xs font-bold text-brand-brown flex items-center gap-1.5 transition border border-brand-orange/20"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-brand-orange" />
+                          <span dir="ltr" className="font-sans">{fb.phone}</span>
+                        </a>
+
+                        {/* WhatsApp Button */}
+                        <a
+                          href={`https://wa.me/${fb.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                            `مرحباً أستاذ ${fb.name}، بخصوص رسالتكم الكريمة لمطعم نيو بورسعيد...`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3.5 py-2 bg-green-50 hover:bg-green-600 hover:text-white rounded-xl text-xs font-bold text-green-700 flex items-center gap-1.5 transition border border-green-200"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>رد عبر واتساب</span>
+                        </a>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleFeedbackRead(fb.id, fb.is_read)}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition"
+                        >
+                          {fb.is_read ? "تمييز كغير مقروء" : "تمييز كمقروء ✓"}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteFeedbackItem(fb.id)}
+                          className="p-2 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 rounded-xl transition"
+                          title="حذف الرسالة"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 5: RESTAURANT SETTINGS */}
         {/* ---------------------------------------------------- */}
         {activeTab === "settings" && settings && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-brand-orange/15 space-y-6 max-w-4xl mx-auto">
+          <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-brand-orange/15 max-w-3xl mx-auto space-y-6 text-right">
             <div>
-              <h3 className="text-2xl font-bold font-aref text-brand-brown">بيانات ومعلومات المطعم</h3>
-              <p className="text-xs sm:text-sm text-brand-muted">
-                تظهر هذه البيانات في الهيدر والفوتر والواتساب وحسابات التواصل
+              <h3 className="font-aref font-bold text-2xl text-brand-brown">
+                بيانات المطعم والعناوين وأرقام الهواتف
+              </h3>
+              <p className="text-xs text-brand-muted">
+                يتم تحديث هذه البيانات وعرضها في الفوتر والنافبار وصفحة التواصل
               </p>
             </div>
 
@@ -917,7 +1300,7 @@ export default function AdminPage() {
         )}
 
         {/* ---------------------------------------------------- */}
-        {/* TAB 4: DATABASE & SUPABASE SYNC */}
+        {/* TAB 6: DATABASE & SUPABASE SYNC */}
         {/* ---------------------------------------------------- */}
         {activeTab === "database" && (
           <div className="space-y-6 max-w-4xl mx-auto">
@@ -1006,19 +1389,27 @@ CREATE TABLE IF NOT EXISTS public.restaurant_settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. Enable RLS
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.menu_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.restaurant_settings ENABLE ROW LEVEL SECURITY;
+-- 4. Customer Reviews
+CREATE TABLE IF NOT EXISTS public.customer_reviews (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT,
+    rating INT DEFAULT 5,
+    comment TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
-CREATE POLICY "Public read categories" ON public.categories FOR SELECT USING (true);
-CREATE POLICY "Public write categories" ON public.categories FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Public read menu_items" ON public.menu_items FOR SELECT USING (true);
-CREATE POLICY "Public write menu_items" ON public.menu_items FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Public read settings" ON public.restaurant_settings FOR SELECT USING (true);
-CREATE POLICY "Public write settings" ON public.restaurant_settings FOR ALL USING (true) WITH CHECK (true);`);
+-- 5. Feedback
+CREATE TABLE IF NOT EXISTS public.feedback (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    type TEXT DEFAULT 'suggestion',
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);`);
                     showToast("تم نسخ سكربت SQL إلى الحافظة!");
                   }}
                   className="bg-brand-orange hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
@@ -1032,7 +1423,9 @@ CREATE POLICY "Public write settings" ON public.restaurant_settings FOR ALL USIN
 {`-- Execute this in Supabase SQL Editor:
 CREATE TABLE IF NOT EXISTS public.categories (...);
 CREATE TABLE IF NOT EXISTS public.menu_items (...);
-CREATE TABLE IF NOT EXISTS public.restaurant_settings (...);`}
+CREATE TABLE IF NOT EXISTS public.restaurant_settings (...);
+CREATE TABLE IF NOT EXISTS public.customer_reviews (...);
+CREATE TABLE IF NOT EXISTS public.feedback (...);`}
               </pre>
             </div>
           </div>

@@ -16,8 +16,12 @@ import { RESTAURANT_INFO } from "@/lib/data.js";
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { totalCount, openCart } = useCart();
+  const { totalCount } = useCart();
   const pathname = usePathname();
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -118,8 +122,8 @@ export const Navbar: React.FC = () => {
             </a>
 
             {/* Cart Trigger */}
-            <button
-              onClick={openCart}
+            <Link
+              href="/cart"
               className={`relative p-2.5 rounded-full shadow-sm transition-all group ${
                 isTransparentAtTop
                   ? "bg-black/30 hover:bg-brand-orange text-white border border-white/30 backdrop-blur-md"
@@ -133,7 +137,7 @@ export const Navbar: React.FC = () => {
                   {totalCount}
                 </span>
               )}
-            </button>
+            </Link>
 
             {/* Reservation CTA Button */}
             <Link

@@ -55,9 +55,6 @@ export const Preloader: React.FC = () => {
       dir="rtl"
     >
       {/* Ambient Background Glows */}
-      <div className="absolute w-96 h-96 bg-brand-orange/20 rounded-full blur-[100px] pointer-events-none animate-pulse" />
-      <div className="absolute w-72 h-72 bg-brand-gold/15 rounded-full blur-[80px] pointer-events-none" />
-
       <div className="relative z-10 flex flex-col items-center text-center space-y-6 px-4">
         {/* Animated Glowing Logo Container */}
         <div className="relative flex items-center justify-center">
@@ -65,14 +62,14 @@ export const Preloader: React.FC = () => {
           <div className="absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full border-2 border-dashed border-brand-orange/40 animate-spin" style={{ animationDuration: "14s" }} />
 
           {/* Inner Glowing Aura */}
-          <div className="absolute w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-brand-orange/30 to-brand-gold/30 blur-md animate-pulse" />
+          <div className="absolute w-32 h-32 sm:w-36 sm:h-36 " />
 
           {/* Restaurant Logo */}
-          <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-white/5 border border-white/15 backdrop-blur-md p-3.5 shadow-2xl flex items-center justify-center">
+          <div className="relative w-40 h-40  p-3.5 flex items-center justify-center">
             <img
               src="/logo.png"
               alt="شعار مطعم نيو بورسعيد"
-              className="w-full h-full object-contain drop-shadow-lg"
+              className="w-full h-full object-contain "
             />
           </div>
         </div>

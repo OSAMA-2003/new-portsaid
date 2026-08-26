@@ -3,9 +3,9 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { Navbar } from "@/components/Navbar";
-import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/Footer";
 import { Preloader } from "@/components/Preloader";
+import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
 
 const changa = localFont({
   src: [
@@ -83,9 +83,9 @@ export default function RootLayout({
         <Preloader />
         <CartProvider>
           <Navbar />
-          <CartDrawer />
           <main className="flex-1">{children}</main>
           <Footer />
+          <FloatingWhatsApp />
         </CartProvider>
       </body>
     </html>

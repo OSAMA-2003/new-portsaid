@@ -7,16 +7,13 @@ import {
   Plus,
   Minus,
   ShoppingBag,
-  Flame,
-  Phone,
-  MapPin,
-  Sparkles,
   ArrowRight,
-  Check,
-  Share2,
+  Info,
+  X,
+  Utensils,
 } from "lucide-react";
 import { MENU_DATA, RESTAURANT_INFO } from "@/lib/data.js";
-import { getMenuCategoriesWithItems, getRestaurantSettings, DbCategory, DbRestaurantSettings } from "@/lib/dbService";
+import { getMenuCategoriesWithItems, getRestaurantSettings, DbCategory, DbRestaurantSettings, DbMenuItem } from "@/lib/dbService";
 import { useCart } from "@/context/CartContext";
 
 export default function MenuPage() {
@@ -32,223 +29,240 @@ export default function MenuPage() {
     facebook_url: "https://facebook.com",
     instagram_url: "https://instagram.com",
   });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
-  const { items: cartItems, addToCart, updateQuantity, openCart, totalCount, totalPrice } = useCart();
 
-  // Load Dynamic Data from Supabase
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedDishForDetails, setSelectedDishForDetails] = useState<{
+    item: DbMenuItem;
+    categoryTitle?: string;
+  } | null>(null);
+
+  const { items: cartItems, addToCart, updateQuantity, totalCount, totalPrice } = useCart();
+
+  // Load dynamic menu & settings from Supabase / localStorage
   useEffect(() => {
-    async function loadData() {
+    async function fetchData() {
       try {
-        const [cats, setts] = await Promise.all([
+        const [dbCats, dbSetts] = await Promise.all([
           getMenuCategoriesWithItems(),
           getRestaurantSettings(),
         ]);
-        if (cats && cats.length > 0) setCategories(cats);
-        if (setts) setSettings(setts);
+        if (dbCats && dbCats.length > 0) setCategories(dbCats);
+        if (dbSetts) setSettings(dbSetts);
       } catch (err) {
-        console.warn("Using local fallback in menu:", err);
+        console.error("Error loading menu data:", err);
       }
     }
-    loadData();
+    fetchData();
   }, []);
 
-  // Helper to get current quantity of item in cart
-  const getItemQuantity = (itemId: string) => {
+  // Keyboard navigation for Details Modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedDishForDetails && e.key === "Escape") {
+        setSelectedDishForDetails(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedDishForDetails]);
+
+  // Filter Categories and Items based on Search Query and Active Tab
+  const filteredCategories = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return categories
+      .filter((cat) => {
+        if (activeCategory === "all") return true;
+        return cat.id === activeCategory;
+      })
+      .map((cat) => {
+        const items = (cat.items || []).filter((item) => {
+          if (!query) return true;
+          const matchName = item.name.toLowerCase().includes(query);
+          const matchDesc = item.description && item.description.toLowerCase().includes(query);
+          return matchName || matchDesc;
+        });
+
+        return {
+          ...cat,
+          filteredItems: items,
+        };
+      })
+      .filter((cat) => cat.filteredItems.length > 0);
+  }, [categories, activeCategory, searchQuery]);
+
+  const totalFilteredDishes = useMemo(() => {
+    return filteredCategories.reduce((acc, cat) => acc + (cat.filteredItems?.length || 0), 0);
+  }, [filteredCategories]);
+
+  const getItemQty = (itemId: string) => {
     const found = cartItems.find((i) => i.id === itemId);
     return found ? found.quantity : 0;
   };
 
-  // Filter categories and items based on search and selected category tab
-  const filteredData = useMemo(() => {
-    let list = categories;
-
-    if (activeCategory !== "all") {
-      list = list.filter((cat) => cat.id === activeCategory);
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      return list
-        .map((cat) => {
-          const matchingItems = (cat.items || []).filter(
-            (item) =>
-              item.is_available !== false &&
-              (item.name.toLowerCase().includes(q) ||
-                (item.description && item.description.toLowerCase().includes(q)) ||
-                (item.badge && item.badge.toLowerCase().includes(q)))
-          );
-          return {
-            ...cat,
-            items: matchingItems,
-          };
-        })
-        .filter((cat) => (cat.items || []).length > 0);
-    }
-
-    return list.map((cat) => ({
-      ...cat,
-      items: (cat.items || []).filter((i) => i.is_available !== false),
-    }));
-  }, [categories, activeCategory, searchQuery]);
-
   return (
-    <div className="min-h-screen bg-brand-cream/60 pb-28 pt-10">
-      {/* Top Banner Header with footer-bg.png */}
+    <div className="min-h-screen bg-brand-cream/60" dir="rtl">
+      {/* 1. HERO HEADER SECTION */}
       <section
-        className="relative bg-brand-dark text-white py-16 px-4 sm:px-6 lg:px-8 overflow-hidden shadow-xl border-b border-brand-orange/20 bg-cover bg-center bg-no-repeat"
+        className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 text-white overflow-hidden bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: " url('/footer-bg.png')",
+          backgroundImage: "url('/footer-bg.png')",
         }}
       >
-        <div className="absolute right-0 top-0 w-96 h-96 bg-brand-orange/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-        <div className="absolute left-0 bottom-0 w-80 h-80 bg-brand-gold/15 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+        {/* Background Dark Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/80 to-brand-dark/95" />
 
-        <div className="max-w-7xl mx-auto text-center space-y-4 relative z-10">
+        {/* Ambient Decorative Accents */}
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-brand-orange/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-72 h-72 bg-brand-gold/15 rounded-full blur-3xl pointer-events-none" />
 
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-4">
+          <span className="inline-block bg-brand-orange text-white text-xs sm:text-sm font-bold px-4 py-1.5 rounded-full shadow-lg border border-white/20">
+            {settings.tagline || "أصل المشويات والطواجن في سوهاج"}
+          </span>
 
-          <h1 className="text-4xl sm:text-6xl font-bold font-aref tracking-wide text-white drop-shadow-md mb-10">
-            منيو{settings.name}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-aref text-white tracking-wide drop-shadow-md">
+            قائمة مأكولات {settings.name}
           </h1>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-orange/20 border border-brand-orange/40 text-amber-300 text-xs sm:text-sm font-bold backdrop-blur-sm">
-            <span>{settings.tagline}</span>
+
+          <p className="text-sm sm:text-base text-brand-cream/90 max-w-xl mx-auto font-medium">
+            تصفح أكثر من ١٥٠ صنفاً من أشهى المشويات، الطواجن الفخارية، الصواني الملكية، والمأكولات البحرية والشرقية.
+          </p>
+
+          {/* Quick Search Bar */}
+          <div className="pt-6 max-w-xl mx-auto">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ابحث عن طبقك المفضل (كباب، طاجن، فراخ، سي فود...)"
+                className="w-full bg-white/95 text-brand-brown pr-12 pl-4 py-3.5 sm:py-4 rounded-2xl shadow-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-brand-orange placeholder:text-brand-muted/70 font-medium"
+              />
+              <Search className="w-5 h-5 text-brand-orange absolute top-4 sm:top-4.5 right-4 pointer-events-none" />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute left-4 top-4 text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-full hover:bg-gray-300 transition"
+                >
+                  مسح
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Sticky Search and Category Navigation */}
-      <div className="sticky top-[68px] sm:top-[76px] z-40 bg-white/95 backdrop-blur-md shadow-md border-b border-brand-orange/15 py-3">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
-          {/* Search Input */}
-          <div className="relative max-w-xl mx-auto">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث عن طبق، مشويات، طاجن، أو صينية..."
-              className="w-full bg-brand-cream/80 hover:bg-white focus:bg-white text-brand-text placeholder-brand-muted/70 pr-11 pl-10 py-2.5 sm:py-3 rounded-2xl border border-brand-orange/20 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 outline-none text-sm transition-all shadow-inner"
-            />
-            <Search className="w-5 h-5 text-brand-orange absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-700 bg-gray-200 hover:bg-gray-300 w-5 h-5 rounded-full flex items-center justify-center transition"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Category Horizontal Scroll Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 hide-scrollbar">
+      {/* 2. CATEGORY FILTER TABS */}
+      <div className="sticky top-20 z-30 bg-white/95 backdrop-blur-md border-y border-brand-orange/20 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
             <button
               onClick={() => setActiveCategory("all")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all shadow-xs shrink-0 ${activeCategory === "all"
-                ? "bg-brand-orange text-white shadow-md shadow-orange-500/30 scale-102"
-                : "bg-brand-surface hover:bg-brand-orange/10 text-brand-brown border border-brand-orange/15"
-                }`}
+              className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                activeCategory === "all"
+                  ? "bg-brand-orange text-white shadow-md shadow-orange-500/20"
+                  : "bg-brand-cream/60 text-brand-brown hover:bg-brand-orange/10"
+              }`}
             >
-              جميع الأقسام ({categories.reduce((acc, c) => acc + (c.items?.length || 0), 0)})
+              <span>جميع الأصناف</span>
+              <span className="text-[11px] opacity-80">({categories.reduce((a, c) => a + (c.items?.length || 0), 0)})</span>
             </button>
 
-            {categories.map((cat) => {
-              const isSelected = activeCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all shadow-xs shrink-0 ${isSelected
-                    ? "bg-brand-orange text-white shadow-md shadow-orange-500/30 scale-102"
-                    : "bg-brand-surface hover:bg-brand-orange/10 text-brand-brown border border-brand-orange/15"
-                    }`}
-                >
-                  {cat.title} ({(cat.items || []).length})
-                </button>
-              );
-            })}
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  activeCategory === category.id
+                    ? "bg-brand-orange text-white shadow-md shadow-orange-500/20"
+                    : "bg-brand-cream/60 text-brand-brown hover:bg-brand-orange/10"
+                }`}
+              >
+                <span>{category.title}</span>
+                <span className="text-[11px] opacity-80">({(category.items || []).length})</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Main Categories and Food Listing */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-14">
-        {filteredData.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl p-8 border border-brand-orange/15 shadow-sm space-y-4">
-
-            <h3 className="text-xl font-bold font-aref text-brand-brown">
-              لم نجد نتائج مطابقة لـ "{searchQuery}"
-            </h3>
-            <p className="text-xs sm:text-sm text-brand-muted">
-              جرب البحث بكلمات أخرى مثل "كباب"، "كفتة"، "طاجن"، "صينية"، أو "مكرونة".
-            </p>
+      {/* 3. MENU ITEMS SECTION */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
+        {filteredCategories.length === 0 ? (
+          /* Empty Search State */
+          <div className="text-center py-20 bg-white rounded-3xl p-8 border border-brand-orange/20 shadow-sm max-w-md mx-auto space-y-4">
+            <div className="w-16 h-16 bg-brand-orange/10 text-brand-orange rounded-full flex items-center justify-center mx-auto">
+              <Search className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold font-aref text-brand-brown">لم نجد أي طبق بهذا الاسم</h3>
+            <p className="text-xs text-brand-muted">جرب البحث بكلمة أخرى أو تصفح الأقسام الرئيسية في الأعلى</p>
             <button
               onClick={() => {
                 setSearchQuery("");
                 setActiveCategory("all");
               }}
-              className="bg-brand-orange text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow hover:bg-orange-600 transition"
+              className="bg-brand-orange text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-orange-600 transition"
             >
-              عرض كل القائمة
+              عرض جميع الأصناف
             </button>
           </div>
         ) : (
-          filteredData.map((category) => (
-            <section
-              key={category.id}
-              id={category.id}
-              className="bg-white rounded-3xl shadow-xl border border-brand-orange/15 overflow-hidden transition-all"
-            >
-              {/* Category Cover Picture Banner */}
-              <div className="relative h-44 sm:h-56 lg:h-64 w-full overflow-hidden group">
-                <img
-                  src={category.image}
-                  alt={category.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/60 to-black/30" />
-
-                {/* Category Header Info */}
-                <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-end text-white">
-                  <div className="flex flex-wrap items-end justify-between gap-4">
-                    <div className="space-y-1.5">
-
-                      <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-aref tracking-wide text-white drop-shadow-md">
+          filteredCategories.map((category) => (
+            <section key={category.id} id={category.id} className="scroll-mt-36">
+              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-brand-orange/15 space-y-6">
+                {/* Category Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-orange/15 pb-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-2xl sm:text-3xl font-bold font-aref text-brand-brown">
                         {category.title}
                       </h2>
-                      {category.description && (
-                        <p className="text-white/85 text-xs sm:text-sm max-w-xl line-clamp-2">
-                          {category.description}
-                        </p>
+                      {category.titleEn && (
+                        <span className="text-xs font-sans text-brand-muted uppercase tracking-wider">
+                          {category.titleEn}
+                        </span>
                       )}
                     </div>
-
-                    <div className="bg-white/15 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 text-xs sm:text-sm font-bold text-amber-300 shrink-0">
-                      {(category.items || []).length} صنف متاح
-                    </div>
+                    {category.description && (
+                      <p className="text-xs sm:text-sm text-brand-muted">
+                        {category.description}
+                      </p>
+                    )}
                   </div>
+                  <span className="text-xs font-bold text-brand-orange bg-brand-cream px-3 py-1 rounded-full self-start sm:self-auto border border-brand-orange/20">
+                    {category.filteredItems.length} صنف
+                  </span>
                 </div>
-              </div>
 
-              {/* Food Items List */}
-              <div className="p-4 sm:p-6 lg:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-                  {(category.items || []).map((item) => {
-                    const qty = getItemQuantity(item.id);
-                    const isDailyPrice = typeof item.price === "string" || item.is_daily;
+                {/* Items Grid */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {category.filteredItems.map((item) => {
+                    const qty = getItemQty(item.id);
+                    const isDailyPrice = item.is_daily || item.price === "يومي";
 
                     return (
                       <div
                         key={item.id}
-                        className={`p-4 sm:p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 group ${qty > 0
-                          ? "bg-brand-orange/5 border-brand-orange shadow-md"
-                          : "bg-brand-cream/40 hover:bg-brand-cream/80 border-brand-orange/15 hover:border-brand-orange/40 hover:shadow-sm"
-                          }`}
+                        className={`p-4 sm:p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 group ${
+                          qty > 0
+                            ? "bg-brand-orange/5 border-brand-orange shadow-md"
+                            : "bg-brand-cream/40 hover:bg-brand-cream/80 border-brand-orange/15 hover:border-brand-orange/40 hover:shadow-sm"
+                        }`}
                       >
                         {/* Food Info */}
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-base sm:text-lg text-brand-brown font-aref tracking-wide group-hover:text-brand-orange transition-colors">
+                            <h4
+                              onClick={() =>
+                                setSelectedDishForDetails({
+                                  item,
+                                  categoryTitle: category.title,
+                                })
+                              }
+                              className="font-bold text-base sm:text-lg text-brand-brown font-aref tracking-wide group-hover:text-brand-orange transition-colors cursor-pointer"
+                            >
                               {item.name}
                             </h4>
                             {item.badge && (
@@ -264,20 +278,35 @@ export default function MenuPage() {
                             </p>
                           )}
 
-                          {/* Price Tag */}
-                          <div className="pt-1 flex items-baseline gap-1.5">
-                            {isDailyPrice ? (
-                              <span className="text-xs font-bold text-brand-orange bg-brand-orange/10 px-2 py-0.5 rounded-md">
-                                حسب السعر اليومي
-                              </span>
-                            ) : (
-                              <>
-                                <span className="text-lg sm:text-xl font-extrabold text-brand-brown font-sans">
-                                  {item.price}
+                          {/* Quick Details & Price Bar */}
+                          <div className="pt-1 flex items-center justify-between gap-2">
+                            <div className="flex items-baseline gap-1.5">
+                              {isDailyPrice ? (
+                                <span className="text-xs font-bold text-brand-orange bg-brand-orange/10 px-2 py-0.5 rounded-md">
+                                  حسب السعر اليومي
                                 </span>
-                                <span className="text-xs font-bold text-brand-orange">ج.م</span>
-                              </>
-                            )}
+                              ) : (
+                                <>
+                                  <span className="text-lg sm:text-xl font-extrabold text-brand-brown font-sans">
+                                    {item.price}
+                                  </span>
+                                  <span className="text-xs font-bold text-brand-orange">ج.م</span>
+                                </>
+                              )}
+                            </div>
+
+                            <button
+                              onClick={() =>
+                                setSelectedDishForDetails({
+                                  item,
+                                  categoryTitle: category.title,
+                                })
+                              }
+                              className="text-[11px] font-bold text-brand-orange hover:text-orange-700 flex items-center gap-1 transition"
+                            >
+                              <Info className="w-3 h-3" />
+                              <span>تفاصيل</span>
+                            </button>
                           </div>
                         </div>
 
@@ -367,13 +396,166 @@ export default function MenuPage() {
               </div>
             </div>
 
-            <button
-              onClick={openCart}
+            <Link
+              href="/cart"
               className="bg-gradient-to-r from-brand-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 hover:scale-105 transition"
             >
-              <span>إتمام الطلب عبر واتساب</span>
+              <span>عرض السلة وإتمام الطلب</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Food Details Modal */}
+      {selectedDishForDetails && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-in fade-in duration-200"
+          onClick={() => setSelectedDishForDetails(null)}
+          dir="rtl"
+        >
+          <div
+            className="bg-white rounded-[2.5rem] overflow-hidden max-w-lg w-full shadow-2xl border-2 border-brand-orange/30 animate-in zoom-in-95 duration-200 flex flex-col text-right relative max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Image */}
+            <div className="relative h-56 sm:h-64 w-full bg-brand-cream overflow-hidden">
+              <img
+                src={selectedDishForDetails.item.image || "/footer-bg.png"}
+                alt={selectedDishForDetails.item.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
+
+              {/* Close Button */}
+              <button
+                onClick={() => setSelectedDishForDetails(null)}
+                className="absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-brand-orange text-white flex items-center justify-center transition shadow-md"
+                aria-label="إغلاق"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Category & Badge */}
+              <div className="absolute bottom-4 inset-x-6 flex items-center justify-between text-white">
+                <span className="bg-brand-orange text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                  {selectedDishForDetails.categoryTitle || "أصناف نيو بورسعيد"}
+                </span>
+                {selectedDishForDetails.item.badge && (
+                  <span className="bg-black/60 backdrop-blur-md border border-white/20 text-amber-300 text-xs font-bold px-3 py-1 rounded-full">
+                    {selectedDishForDetails.item.badge}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="space-y-1">
+                <h3 className="font-aref font-bold text-3xl text-brand-brown">
+                  {selectedDishForDetails.item.name}
+                </h3>
+              </div>
+
+              {/* Full Description & Ingredients */}
+              <div className="space-y-2 bg-brand-cream/50 p-4 rounded-2xl border border-brand-orange/15">
+                <h4 className="text-xs font-bold text-brand-muted flex items-center gap-1.5">
+                  <Utensils className="w-3.5 h-3.5 text-brand-orange" />
+                  <span>المكونات والتحضير:</span>
+                </h4>
+                <p className="text-brand-brown text-sm sm:text-base leading-relaxed">
+                  {selectedDishForDetails.item.description ||
+                    "طبق طازج ولذيذ يُحضر يومياً بأعلى معايير الجودة والنظافة في مطبخ نيو بورسعيد."}
+                </p>
+              </div>
+
+              {/* Price & Action Bottom Bar */}
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs text-brand-muted block font-semibold">السعر</span>
+                  <div className="flex items-baseline gap-1">
+                    {selectedDishForDetails.item.is_daily ||
+                    selectedDishForDetails.item.price === "يومي" ? (
+                      <span className="text-lg font-bold text-brand-orange">حسب السعر اليومي</span>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-extrabold text-brand-brown font-sans">
+                          {selectedDishForDetails.item.price}
+                        </span>
+                        <span className="text-xs font-bold text-brand-orange">ج.م</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex-1 max-w-[200px]">
+                  {getItemQty(selectedDishForDetails.item.id) > 0 ? (
+                    <div className="flex items-center justify-between bg-brand-cream px-3 py-2 rounded-2xl border-2 border-brand-orange/40 shadow-sm">
+                      <button
+                        onClick={() =>
+                          updateQuantity(
+                            selectedDishForDetails.item.id,
+                            getItemQty(selectedDishForDetails.item.id) - 1
+                          )
+                        }
+                        className="w-8 h-8 rounded-xl bg-white text-brand-brown hover:text-red-600 flex items-center justify-center transition shadow-xs"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="font-bold text-base text-brand-brown font-sans">
+                        {getItemQty(selectedDishForDetails.item.id)}
+                      </span>
+                      <button
+                        onClick={() =>
+                          addToCart(
+                            {
+                              id: selectedDishForDetails.item.id,
+                              name: selectedDishForDetails.item.name,
+                              price:
+                                typeof selectedDishForDetails.item.price === "number"
+                                  ? selectedDishForDetails.item.price
+                                  : 0,
+                              category: selectedDishForDetails.item.category_id,
+                              description: selectedDishForDetails.item.description,
+                              image: selectedDishForDetails.item.image,
+                              badge: selectedDishForDetails.item.badge,
+                            },
+                            1
+                          )
+                        }
+                        className="w-8 h-8 rounded-xl bg-brand-orange text-white hover:bg-orange-600 flex items-center justify-center transition shadow-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        addToCart(
+                          {
+                            id: selectedDishForDetails.item.id,
+                            name: selectedDishForDetails.item.name,
+                            price:
+                              typeof selectedDishForDetails.item.price === "number"
+                                ? selectedDishForDetails.item.price
+                                : 0,
+                            category: selectedDishForDetails.item.category_id,
+                            description: selectedDishForDetails.item.description,
+                            image: selectedDishForDetails.item.image,
+                            badge: selectedDishForDetails.item.badge,
+                          },
+                          1
+                        )
+                      }
+                      className="w-full py-3.5 bg-gradient-to-r from-brand-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>أضف للسلة</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

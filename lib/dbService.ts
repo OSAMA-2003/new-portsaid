@@ -38,6 +38,26 @@ export interface DbRestaurantSettings {
   instagram_url: string;
 }
 
+export interface DbCustomerReview {
+  id: string;
+  name: string;
+  phone?: string;
+  rating: number;
+  comment: string;
+  status: "pending" | "approved" | "rejected";
+  created_at?: string;
+}
+
+export interface DbFeedback {
+  id: string;
+  name: string;
+  phone: string;
+  type: "suggestion" | "complaint";
+  message: string;
+  is_read: boolean;
+  created_at?: string;
+}
+
 // 1. Fetch Full Menu with Categories and Items
 export async function getMenuCategoriesWithItems(): Promise<DbCategory[]> {
   try {
@@ -305,4 +325,226 @@ export async function seedDatabaseFromDataJS(): Promise<{ success: boolean; cate
     console.error("Seeding Error:", err);
     throw new Error(err?.message || "حدث خطأ أثناء نقل البيانات إلى Supabase. تأكد من تشغيل سكربت schema.sql في Supabase أولاً.");
   }
+}
+
+// ----------------------------------------------------
+// 9. CUSTOMER REVIEWS (SUBMIT, APPROVE, REJECT, DELETE)
+// ----------------------------------------------------
+
+const LOCAL_REVIEWS_KEY = "new_portsaid_customer_reviews";
+
+function getLocalReviews(): DbCustomerReview[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_REVIEWS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalReviews(reviews: DbCustomerReview[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LOCAL_REVIEWS_KEY, JSON.stringify(reviews));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function submitCustomerReview(review: Omit<DbCustomerReview, "id" | "status" | "created_at">): Promise<DbCustomerReview> {
+  const newReview: DbCustomerReview = {
+    id: `rev_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    name: review.name.trim(),
+    phone: review.phone?.trim() || "",
+    rating: Number(review.rating) || 5,
+    comment: review.comment.trim(),
+    status: "pending",
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from("customer_reviews")
+      .insert(newReview)
+      .select()
+      .single();
+
+    if (!error && data) {
+      return data;
+    }
+  } catch (err) {
+    console.warn("Supabase submit review failed, using local storage fallback:", err);
+  }
+
+  // Fallback to local storage
+  const current = getLocalReviews();
+  saveLocalReviews([newReview, ...current]);
+  return newReview;
+}
+
+export async function getApprovedCustomerReviews(): Promise<DbCustomerReview[]> {
+  try {
+    const { data, error } = await supabase
+      .from("customer_reviews")
+      .select("*")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+  } catch (err) {
+    console.warn("Supabase fetch approved reviews error:", err);
+  }
+
+  // Fallback
+  return getLocalReviews().filter((r) => r.status === "approved");
+}
+
+export async function getAllCustomerReviewsAdmin(): Promise<DbCustomerReview[]> {
+  try {
+    const { data, error } = await supabase
+      .from("customer_reviews")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      return data;
+    }
+  } catch (err) {
+    console.warn("Supabase fetch all reviews error:", err);
+  }
+
+  return getLocalReviews();
+}
+
+export async function updateReviewStatus(reviewId: string, status: "approved" | "rejected" | "pending"): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("customer_reviews")
+      .update({ status })
+      .eq("id", reviewId);
+
+    if (!error) {
+      // Also update local storage if found
+      const current = getLocalReviews().map((r) => (r.id === reviewId ? { ...r, status } : r));
+      saveLocalReviews(current);
+      return true;
+    }
+  } catch (err) {
+    console.warn("Supabase update review error:", err);
+  }
+
+  const current = getLocalReviews().map((r) => (r.id === reviewId ? { ...r, status } : r));
+  saveLocalReviews(current);
+  return true;
+}
+
+export async function deleteCustomerReview(reviewId: string): Promise<boolean> {
+  try {
+    await supabase.from("customer_reviews").delete().eq("id", reviewId);
+  } catch (err) {
+    console.warn("Supabase delete review error:", err);
+  }
+
+  const current = getLocalReviews().filter((r) => r.id !== reviewId);
+  saveLocalReviews(current);
+  return true;
+}
+
+// ----------------------------------------------------
+// 10. SUGGESTIONS & COMPLAINTS (FEEDBACK)
+// ----------------------------------------------------
+
+const LOCAL_FEEDBACK_KEY = "new_portsaid_customer_feedback";
+
+function getLocalFeedback(): DbFeedback[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_FEEDBACK_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalFeedback(feedbackList: DbFeedback[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(feedbackList));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function submitCustomerFeedback(feedback: Omit<DbFeedback, "id" | "is_read" | "created_at">): Promise<DbFeedback> {
+  const newFeedback: DbFeedback = {
+    id: `fb_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    name: feedback.name.trim(),
+    phone: feedback.phone.trim(),
+    type: feedback.type,
+    message: feedback.message.trim(),
+    is_read: false,
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from("feedback")
+      .insert(newFeedback)
+      .select()
+      .single();
+
+    if (!error && data) {
+      return data;
+    }
+  } catch (err) {
+    console.warn("Supabase submit feedback failed, using local storage fallback:", err);
+  }
+
+  const current = getLocalFeedback();
+  saveLocalFeedback([newFeedback, ...current]);
+  return newFeedback;
+}
+
+export async function getAllFeedbackAdmin(): Promise<DbFeedback[]> {
+  try {
+    const { data, error } = await supabase
+      .from("feedback")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      return data;
+    }
+  } catch (err) {
+    console.warn("Supabase fetch feedback error:", err);
+  }
+
+  return getLocalFeedback();
+}
+
+export async function markFeedbackAsRead(feedbackId: string, is_read = true): Promise<boolean> {
+  try {
+    await supabase.from("feedback").update({ is_read }).eq("id", feedbackId);
+  } catch (err) {
+    console.warn("Supabase mark feedback error:", err);
+  }
+
+  const current = getLocalFeedback().map((f) => (f.id === feedbackId ? { ...f, is_read } : f));
+  saveLocalFeedback(current);
+  return true;
+}
+
+export async function deleteFeedback(feedbackId: string): Promise<boolean> {
+  try {
+    await supabase.from("feedback").delete().eq("id", feedbackId);
+  } catch (err) {
+    console.warn("Supabase delete feedback error:", err);
+  }
+
+  const current = getLocalFeedback().filter((f) => f.id !== feedbackId);
+  saveLocalFeedback(current);
+  return true;
 }
