@@ -124,6 +124,7 @@ export const GallerySection: React.FC = () => {
                 className="w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 shrink-0 rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group cursor-pointer hover:scale-103"
               >
                 <img
+                  loading="lazy"
                   src={src}
                   alt="لحظات مطعم نيو بورسعيد"
                   className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 pointer-events-none"
