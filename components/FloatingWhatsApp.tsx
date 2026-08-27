@@ -11,9 +11,9 @@ export const FloatingWhatsApp: React.FC = () => {
   if (pathname?.startsWith("/admin")) {
     return null;
   }
-  const whatsappNumber = RESTAURANT_INFO.whatsapp || "201007375151";
+  const whatsappNumber = RESTAURANT_INFO.whatsapp || "201100130080";
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-    "مرحباً مطعم نيو بورسعيد! أود الاستفسار عن المنيو وطلب دليفري 🍽️"
+    "مرحباً مطعم نيو بورسعيد! أود الاستفسار عن المنيو وطلب دليفري "
   )}`;
 
   return (

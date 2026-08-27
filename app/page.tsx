@@ -115,7 +115,7 @@ export default function Home() {
             />
 
             <p className="text-brand-muted text-base sm:text-lg leading-relaxed">
-              من قلب سوهاج الباسلة، انطلقت رحلتنا بحلم بسيط: تقديم طعام مصري حقيقي يحتفي بالنكهة الغنية، ويجمع العائلة والأصدقاء حول موائد عامرة بالمحبة واللذة. نختار لحومنا البلدية بعناية فائقة، ونشويها بطرقنا المتوارثة لنمنحكم تجربة لا تُنسى في كل لقمة.
+              من قلب سوهاج الجديدة الباسلة، انطلقت رحلتنا بحلم بسيط: تقديم طعام مصري حقيقي يحتفي بالنكهة الغنية، ويجمع العائلة والأصدقاء حول موائد عامرة بالمحبة واللذة. نختار لحومنا البلدية بعناية فائقة، ونشويها بطرقنا المتوارثة لنمنحكم تجربة لا تُنسى في كل لقمة.
             </p>
 
 
@@ -130,7 +130,7 @@ export default function Home() {
 
       <div className="w-full">
         <TextLoop
-          text="طعم على أصوله ✦ من قلب سوهاج ✦ معمول بحب ✦ أكل يفرّح ✦ طعم يستاهل الرجوع"
+          text="طعم على أصوله ✦ من قلب سوهاج الجديدة ✦ معمول بحب ✦ أكل يفرّح ✦ طعم يستاهل الرجوع"
           shape="wave"
           speed={80}
           direction="forward"
@@ -234,7 +234,7 @@ export default function Home() {
               <AnimatedCounter end={1} duration={1.8} />
             </p>
             <p className="text-xs sm:text-sm font-semibold tracking-wide text-white/90">
-              فرعنا في قلب سوهاج
+              فرعنا في قلب سوهاج الجديدة
             </p>
           </div>
         </div>
@@ -456,10 +456,10 @@ export default function Home() {
 
               <a
 
-                href="tel:01234567890"
+                href="tel:01007375151"
                 className="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-6 py-4 rounded-2xl font-bold text-base transition backdrop-blur-sm"
               >
-                <span >الخط الساخن: <span dir="ltr" > 012-345-678-90</span>   </span>
+                <span >الخط الساخن: <span dir="ltr" > 01007375151</span>   </span>
               </a>
             </div>
           </div>

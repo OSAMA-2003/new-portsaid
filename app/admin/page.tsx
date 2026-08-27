@@ -29,6 +29,8 @@ import {
   Lightbulb,
   ShieldAlert,
   Send,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   getMenuCategoriesWithItems,
@@ -243,6 +245,43 @@ export default function AdminPage() {
     }
   };
 
+  // Image Upload Handlers (Direct from Device)
+  const handleCategoryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("حجم الصورة كبير. يرجى اختيار صورة أقل من 5 ميجابايت", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setEditingCategory((prev) => (prev ? { ...prev, image: base64 } : null));
+      showToast("تم رفع صورة القسم بنجاح!");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleItemImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("حجم الصورة كبير. يرجى اختيار صورة أقل من 5 ميجابايت", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setEditingItem((prev) => (prev ? { ...prev, image: base64 } : null));
+      showToast("تم رفع صورة الطبق بنجاح!");
+    };
+    reader.readAsDataURL(file);
+  };
+
   // ----------------------------------------------------
   // CATEGORY HANDLERS
   // ----------------------------------------------------
@@ -253,7 +292,6 @@ export default function AdminPage() {
       setEditingCategory({
         id: "",
         title: "",
-        titleEn: "",
         image: "",
         description: "",
         icon: "Flame",
@@ -274,7 +312,6 @@ export default function AdminPage() {
       await upsertCategory({
         id: editingCategory?.id?.trim() || undefined,
         title: categoryTitle,
-        titleEn: editingCategory?.titleEn,
         image: editingCategory?.image,
         description: editingCategory?.description,
         icon: editingCategory?.icon,
@@ -849,7 +886,6 @@ export default function AdminPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 flex flex-col justify-end text-white">
                       <h4 className="font-aref font-bold text-2xl">{cat.title}</h4>
-                      {cat.titleEn && <p className="text-xs text-amber-300 font-sans">{cat.titleEn}</p>}
                     </div>
                   </div>
 
@@ -1351,7 +1387,6 @@ export default function AdminPage() {
 CREATE TABLE IF NOT EXISTS public.categories (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
-    title_en TEXT,
     image TEXT,
     description TEXT,
     icon TEXT,
@@ -1527,6 +1562,67 @@ CREATE TABLE IF NOT EXISTS public.feedback (...);`}
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-brand-brown">صورة الطبق (اختياري)</label>
+
+                {editingItem.image ? (
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-brand-orange/30 group bg-black/5 h-36">
+                    <img
+                      src={editingItem.image}
+                      alt="معاينة صورة الطبق"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 p-2">
+                      <label
+                        htmlFor="item-image-upload"
+                        className="bg-brand-orange hover:bg-orange-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer shadow-md flex items-center gap-1.5 transition hover:scale-105"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>تغيير</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem({ ...editingItem, image: "" })}
+                        className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md transition hover:scale-105"
+                      >
+                        إزالة
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="item-image-upload"
+                    className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-2xl border-2 border-dashed border-brand-orange/40 hover:border-brand-orange bg-brand-cream/40 hover:bg-brand-cream/80 cursor-pointer transition text-center group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-brand-orange/15 text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-bold text-brand-brown">انقر لرفع صورة الطبق من جهازك</p>
+                  </label>
+                )}
+
+                <input
+                  id="item-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleItemImageUpload}
+                  className="hidden"
+                />
+
+                <details className="text-[11px] text-brand-muted pt-0.5">
+                  <summary className="cursor-pointer font-medium hover:text-brand-orange">
+                    أو إدخال رابط صورة خارجي (URL)...
+                  </summary>
+                  <input
+                    type="url"
+                    value={editingItem.image || ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, image: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full mt-1.5 bg-brand-cream/50 p-2 rounded-xl border border-brand-orange/20 focus:border-brand-orange outline-none text-xs font-sans"
+                  />
+                </details>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-brand-brown mb-1">وصف المكونات والتقديم</label>
                 <textarea
@@ -1580,40 +1676,86 @@ CREATE TABLE IF NOT EXISTS public.feedback (...);`}
             </div>
 
             <form onSubmit={handleSaveCategory} className="space-y-4 text-right">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-brand-brown mb-1">اسم القسم (عربي) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingCategory.title || ""}
-                    onChange={(e) => setEditingCategory({ ...editingCategory, title: e.target.value })}
-                    placeholder="مثال: المشويات"
-                    className="w-full bg-brand-cream/50 p-3 rounded-xl border border-brand-orange/20 focus:border-brand-orange outline-none text-sm font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-brand-brown mb-1">الاسم بالإنجليزية</label>
-                  <input
-                    type="text"
-                    value={editingCategory.titleEn || ""}
-                    onChange={(e) => setEditingCategory({ ...editingCategory, titleEn: e.target.value })}
-                    placeholder="مثال: GRILLS"
-                    className="w-full bg-brand-cream/50 p-3 rounded-xl border border-brand-orange/20 focus:border-brand-orange outline-none text-sm font-bold font-sans"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-brand-brown mb-1">اسم القسم *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingCategory.title || ""}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, title: e.target.value })}
+                  placeholder="مثال: المشويات"
+                  className="w-full bg-brand-cream/50 p-3 rounded-xl border border-brand-orange/20 focus:border-brand-orange outline-none text-sm font-bold"
+                />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-brand-brown mb-1">رابط صورة الغلاف (Image URL)</label>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-brand-brown">صورة غلاف القسم</label>
+
+                {/* Upload & Live Preview Card */}
+                {editingCategory.image ? (
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-brand-orange/30 group bg-black/5 h-44">
+                    <img
+                      src={editingCategory.image}
+                      alt="معاينة صورة القسم"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 p-3">
+                      <label
+                        htmlFor="category-image-upload"
+                        className="bg-brand-orange hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer shadow-md flex items-center gap-1.5 transition hover:scale-105"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>تغيير الصورة</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setEditingCategory({ ...editingCategory, image: "" })}
+                        className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md transition hover:scale-105"
+                      >
+                        إزالة
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="category-image-upload"
+                    className="flex flex-col items-center justify-center gap-2 p-6 rounded-2xl border-2 border-dashed border-brand-orange/40 hover:border-brand-orange bg-brand-cream/40 hover:bg-brand-cream/80 cursor-pointer transition text-center group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-brand-orange/15 text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-brand-brown">
+                        انقر لاختيار ورفع صورة من جهازك
+                      </p>
+                      <p className="text-[11px] text-brand-muted">
+                        PNG, JPG, WEBP حتى 5 ميجابايت
+                      </p>
+                    </div>
+                  </label>
+                )}
+
                 <input
-                  type="url"
-                  value={editingCategory.image || ""}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, image: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full bg-brand-cream/50 p-3 rounded-xl border border-brand-orange/20 focus:border-brand-orange outline-none text-sm font-sans"
+                  id="category-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCategoryImageUpload}
+                  className="hidden"
                 />
+
+                {/* Optional Collapsible Fallback URL input */}
+                <details className="text-xs text-brand-muted pt-1">
+                  <summary className="cursor-pointer font-medium hover:text-brand-orange">
+                    أو إدخال رابط صورة خارجي (URL)...
+                  </summary>
+                  <input
+                    type="url"
+                    value={editingCategory.image || ""}
+                    onChange={(e) => setEditingCategory({ ...editingCategory, image: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full mt-2 bg-brand-cream/50 p-2.5 rounded-xl border border-brand-orange/20 focus:border-brand-orange outline-none text-xs font-sans"
+                  />
+                </details>
               </div>
 
               <div>

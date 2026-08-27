@@ -9,7 +9,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
-  title_en TEXT,
   image TEXT,
   description TEXT,
   icon TEXT DEFAULT 'Flame',

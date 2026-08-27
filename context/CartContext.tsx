@@ -5,7 +5,6 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 export interface MenuItem {
   id: string;
   name: string;
-  nameEn?: string;
   category?: string;
   price: number | string;
   description?: string;

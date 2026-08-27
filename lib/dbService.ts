@@ -4,7 +4,6 @@ import { MENU_DATA, RESTAURANT_INFO } from "./data.js";
 export interface DbCategory {
   id: string;
   title: string;
-  titleEn?: string;
   image: string;
   description: string;
   icon?: string;
@@ -85,7 +84,6 @@ export async function getMenuCategoriesWithItems(): Promise<DbCategory[]> {
     return categories.map((cat) => ({
       id: cat.id,
       title: cat.title,
-      titleEn: cat.title_en || "",
       image: cat.image || "",
       description: cat.description || "",
       icon: cat.icon || "Flame",
@@ -244,7 +242,6 @@ export async function upsertCategory(category: Partial<DbCategory> & { title: st
     .upsert({
       id: catId,
       title: category.title,
-      title_en: category.titleEn || "",
       image: category.image || "",
       description: category.description || "",
       icon: category.icon || "Flame",
@@ -289,7 +286,6 @@ export async function seedDatabaseFromDataJS(): Promise<{ success: boolean; cate
       await upsertCategory({
         id: cat.id,
         title: cat.title,
-        titleEn: cat.titleEn,
         image: cat.image,
         description: cat.description,
         icon: cat.icon,
