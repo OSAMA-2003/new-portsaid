@@ -149,10 +149,23 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/60">
           <p>© {new Date().getFullYear()} {RESTAURANT_INFO.name}. جميع الحقوق محفوظة.</p>
-          <div className="flex items-center gap-1 text-white/70">
-            <span>أكل بشوات</span>
-            <Heart className="w-3.5 h-3.5 text-brand-orange fill-brand-orange inline mx-1" />
-            <span>بكل فخر ومحبة لأهل سوهاج</span>
+
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+
+
+            <span className="text-white/20 hidden sm:inline">•</span>
+
+            <a
+              href="https://unilira.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/70 hover:text-white transition-colors flex items-center gap-1 group"
+            >
+              <span>Made by <span className="text-brand-orange font-bold group-hover:underline underline-offset-4">
+                Unilira
+              </span> </span>
+
+            </a>
           </div>
         </div>
       </div>

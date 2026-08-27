@@ -58,7 +58,7 @@ export default function AdminPage() {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState("");
-  const [savedPin, setSavedPin] = useState("1234");
+  const [savedPin, setSavedPin] = useState("Admin@12345");
   const [authError, setAuthError] = useState("");
 
   // Navigation Tab State
@@ -143,7 +143,7 @@ export default function AdminPage() {
       sessionStorage.setItem("new_portsaid_admin_auth", "true");
       setAuthError("");
     } else {
-      setAuthError("رمز المرور غير صحيح. الرمز الافتراضي هو 1234");
+      setAuthError("رمز المرور غير صحيح");
     }
   };
 
@@ -348,8 +348,8 @@ export default function AdminPage() {
         status === "approved"
           ? "تم قبول ونشر التقييم في الموقع بنجاح!"
           : status === "rejected"
-          ? "تم رفض وتجاهل التقييم"
-          : "تم تعيين التقييم كقيد المراجعة"
+            ? "تم رفض وتجاهل التقييم"
+            : "تم تعيين التقييم كقيد المراجعة"
       );
       loadAllData();
     } catch (err) {
@@ -483,10 +483,10 @@ export default function AdminPage() {
             <div>
               <input
                 type="password"
-                maxLength={8}
+                maxLength={12}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                placeholder="أدخل رمز الدخول (الافتراضي: 1234)"
+                placeholder="أدخل رمز الدخول "
                 autoFocus
                 className="w-full text-center text-2xl tracking-[0.5em] font-sans py-3.5 px-4 rounded-2xl border-2 border-brand-orange/30 focus:border-brand-orange outline-none bg-brand-cream/40"
               />
@@ -510,7 +510,7 @@ export default function AdminPage() {
             <Link href="/" className="text-brand-orange hover:underline">
               ← العودة للموقع
             </Link>
-            <span>رمز PIN الافتراضي: 1234</span>
+
           </div>
         </div>
       </div>
@@ -528,11 +528,10 @@ export default function AdminPage() {
       {/* Toast Notification */}
       {toastMessage && (
         <div
-          className={`fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-2 border animate-in slide-in-from-bottom-5 duration-300 ${
-            toastMessage.type === "success"
-              ? "bg-green-600 text-white border-green-500"
-              : "bg-red-600 text-white border-red-500"
-          }`}
+          className={`fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-2 border animate-in slide-in-from-bottom-5 duration-300 ${toastMessage.type === "success"
+            ? "bg-green-600 text-white border-green-500"
+            : "bg-red-600 text-white border-red-500"
+            }`}
         >
           {toastMessage.type === "success" ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
           <span>{toastMessage.text}</span>
@@ -640,11 +639,10 @@ export default function AdminPage() {
         <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar border-b border-brand-orange/20">
           <button
             onClick={() => setActiveTab("items")}
-            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
-              activeTab === "items"
-                ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
-                : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
-            }`}
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${activeTab === "items"
+              ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
+              : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
+              }`}
           >
             <UtensilsCrossed className="w-4 h-4" />
             <span>الأطباق والمنيو ({allItems.length})</span>
@@ -652,11 +650,10 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("categories")}
-            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
-              activeTab === "categories"
-                ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
-                : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
-            }`}
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${activeTab === "categories"
+              ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
+              : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
+              }`}
           >
             <Layers className="w-4 h-4" />
             <span>الأقسام ({categories.length})</span>
@@ -664,11 +661,10 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("reviews")}
-            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
-              activeTab === "reviews"
-                ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
-                : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
-            }`}
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${activeTab === "reviews"
+              ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
+              : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
+              }`}
           >
             <MessageSquareHeart className="w-4 h-4" />
             <span>
@@ -678,11 +674,10 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("feedback")}
-            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
-              activeTab === "feedback"
-                ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
-                : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
-            }`}
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${activeTab === "feedback"
+              ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
+              : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
+              }`}
           >
             <Inbox className="w-4 h-4" />
             <span>
@@ -692,11 +687,10 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("settings")}
-            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
-              activeTab === "settings"
-                ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
-                : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
-            }`}
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${activeTab === "settings"
+              ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
+              : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
+              }`}
           >
             <Settings className="w-4 h-4" />
             <span>بيانات المطعم</span>
@@ -704,11 +698,10 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("database")}
-            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${
-              activeTab === "database"
-                ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
-                : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
-            }`}
+            className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shrink-0 ${activeTab === "database"
+              ? "bg-brand-orange text-white shadow-lg shadow-orange-500/25"
+              : "bg-white text-brand-brown hover:bg-brand-orange/10 border border-brand-orange/15"
+              }`}
           >
             <Database className="w-4 h-4" />
             <span>قاعدة البيانات والنقل</span>
@@ -807,16 +800,14 @@ export default function AdminPage() {
                           <td className="p-4">
                             <button
                               onClick={() => handleToggleItemAvailability(item)}
-                              className={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
-                                item.is_available !== false
-                                  ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                  : "bg-red-100 text-red-700 hover:bg-red-200"
-                              }`}
+                              className={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${item.is_available !== false
+                                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                : "bg-red-100 text-red-700 hover:bg-red-200"
+                                }`}
                             >
                               <span
-                                className={`w-2 h-2 rounded-full ${
-                                  item.is_available !== false ? "bg-green-500" : "bg-red-500"
-                                }`}
+                                className={`w-2 h-2 rounded-full ${item.is_available !== false ? "bg-green-500" : "bg-red-500"
+                                  }`}
                               />
                               <span>{item.is_available !== false ? "متوفر" : "نفذ"}</span>
                             </button>
@@ -933,25 +924,22 @@ export default function AdminPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setReviewFilter("all")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                    reviewFilter === "all" ? "bg-brand-brown text-white" : "bg-brand-cream text-brand-brown"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${reviewFilter === "all" ? "bg-brand-brown text-white" : "bg-brand-cream text-brand-brown"
+                    }`}
                 >
                   الكل ({reviews.length})
                 </button>
                 <button
                   onClick={() => setReviewFilter("pending")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                    reviewFilter === "pending" ? "bg-amber-500 text-white" : "bg-brand-cream text-amber-700"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${reviewFilter === "pending" ? "bg-amber-500 text-white" : "bg-brand-cream text-amber-700"
+                    }`}
                 >
                   قيد المراجعة ({pendingReviewsCount})
                 </button>
                 <button
                   onClick={() => setReviewFilter("approved")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                    reviewFilter === "approved" ? "bg-green-600 text-white" : "bg-brand-cream text-green-700"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${reviewFilter === "approved" ? "bg-green-600 text-white" : "bg-brand-cream text-green-700"
+                    }`}
                 >
                   معتمدة في الموقع ({reviews.filter((r) => r.status === "approved").length})
                 </button>
@@ -972,13 +960,12 @@ export default function AdminPage() {
                 filteredReviews.map((rev) => (
                   <div
                     key={rev.id}
-                    className={`bg-white rounded-3xl p-6 shadow-sm border-2 transition-all space-y-4 flex flex-col justify-between ${
-                      rev.status === "approved"
-                        ? "border-green-500/30"
-                        : rev.status === "pending"
+                    className={`bg-white rounded-3xl p-6 shadow-sm border-2 transition-all space-y-4 flex flex-col justify-between ${rev.status === "approved"
+                      ? "border-green-500/30"
+                      : rev.status === "pending"
                         ? "border-amber-500/40 bg-amber-50/20"
                         : "border-red-400/30 bg-red-50/10"
-                    }`}
+                      }`}
                   >
                     <div className="space-y-3">
                       {/* Top Meta */}
@@ -987,21 +974,19 @@ export default function AdminPage() {
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`w-4 h-4 ${
-                                i < rev.rating ? "fill-brand-orange text-brand-orange" : "text-gray-200"
-                              }`}
+                              className={`w-4 h-4 ${i < rev.rating ? "fill-brand-orange text-brand-orange" : "text-gray-200"
+                                }`}
                             />
                           ))}
                         </div>
 
                         <span
-                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                            rev.status === "approved"
-                              ? "bg-green-100 text-green-700"
-                              : rev.status === "pending"
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${rev.status === "approved"
+                            ? "bg-green-100 text-green-700"
+                            : rev.status === "pending"
                               ? "bg-amber-100 text-amber-700"
                               : "bg-red-100 text-red-700"
-                          }`}
+                            }`}
                         >
                           {rev.status === "approved" ? "معتمد ومنشور" : rev.status === "pending" ? "بانتظار الموافقة" : "مرفوض"}
                         </span>
@@ -1073,33 +1058,29 @@ export default function AdminPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setFeedbackFilter("all")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                    feedbackFilter === "all" ? "bg-brand-brown text-white" : "bg-brand-cream text-brand-brown"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${feedbackFilter === "all" ? "bg-brand-brown text-white" : "bg-brand-cream text-brand-brown"
+                    }`}
                 >
                   جميع الرسائل ({feedbackList.length})
                 </button>
                 <button
                   onClick={() => setFeedbackFilter("unread")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                    feedbackFilter === "unread" ? "bg-red-600 text-white" : "bg-brand-cream text-red-700"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${feedbackFilter === "unread" ? "bg-red-600 text-white" : "bg-brand-cream text-red-700"
+                    }`}
                 >
                   غير مقروءة ({unreadFeedbackCount})
                 </button>
                 <button
                   onClick={() => setFeedbackFilter("suggestion")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                    feedbackFilter === "suggestion" ? "bg-amber-500 text-white" : "bg-brand-cream text-amber-700"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${feedbackFilter === "suggestion" ? "bg-amber-500 text-white" : "bg-brand-cream text-amber-700"
+                    }`}
                 >
                   💡 اقتراحات ({feedbackList.filter((f) => f.type === "suggestion").length})
                 </button>
                 <button
                   onClick={() => setFeedbackFilter("complaint")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                    feedbackFilter === "complaint" ? "bg-red-500 text-white" : "bg-brand-cream text-red-700"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition ${feedbackFilter === "complaint" ? "bg-red-500 text-white" : "bg-brand-cream text-red-700"
+                    }`}
                 >
                   ⚠️ شكاوى ({feedbackList.filter((f) => f.type === "complaint").length})
                 </button>
@@ -1120,18 +1101,16 @@ export default function AdminPage() {
                 filteredFeedback.map((fb) => (
                   <div
                     key={fb.id}
-                    className={`bg-white rounded-3xl p-6 shadow-sm border-2 transition-all space-y-4 ${
-                      !fb.is_read ? "border-brand-orange bg-orange-50/20" : "border-gray-100"
-                    }`}
+                    className={`bg-white rounded-3xl p-6 shadow-sm border-2 transition-all space-y-4 ${!fb.is_read ? "border-brand-orange bg-orange-50/20" : "border-gray-100"
+                      }`}
                   >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
                       <div className="flex items-center gap-3">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
-                            fb.type === "suggestion"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
+                          className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${fb.type === "suggestion"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-red-100 text-red-800"
+                            }`}
                         >
                           {fb.type === "suggestion" ? <Lightbulb className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
                           <span>{fb.type === "suggestion" ? "اقتراح تطوير" : "شكوى عميل"}</span>
@@ -1455,7 +1434,7 @@ CREATE TABLE IF NOT EXISTS public.feedback (
               </div>
 
               <pre className="bg-black/50 p-4 rounded-2xl text-xs text-amber-200 overflow-x-auto max-h-60 font-mono text-left" dir="ltr">
-{`-- Execute this in Supabase SQL Editor:
+                {`-- Execute this in Supabase SQL Editor:
 CREATE TABLE IF NOT EXISTS public.categories (...);
 CREATE TABLE IF NOT EXISTS public.menu_items (...);
 CREATE TABLE IF NOT EXISTS public.restaurant_settings (...);
