@@ -85,7 +85,7 @@ export const TextLoop: React.FC<TextLoopProps> = ({
   ribbon = true,
   ribbonColor = "#F26D21",
   ribbonWidth = 76,
-  pauseOnHover = true,
+  pauseOnHover = false,
   className = "",
   style = {},
 }) => {
@@ -163,7 +163,7 @@ export const TextLoop: React.FC<TextLoopProps> = ({
     const t2 = setTimeout(measure, 300);
 
     if (typeof document !== "undefined" && (document as any).fonts?.ready) {
-      (document as any).fonts.ready.then(measure).catch(() => {});
+      (document as any).fonts.ready.then(measure).catch(() => { });
     }
 
     window.addEventListener("resize", measure);
