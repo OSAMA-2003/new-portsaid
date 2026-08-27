@@ -8,18 +8,25 @@ export const GALLERY_ROW_1 = [
   "/gallery/1.jpg",
   "/gallery/2.jpg",
   "/gallery/3.jpg",
-  "/story.jpg",
+
   "/gallery/4.jpg",
-  "/story2.jpg",
+  "/gallery/5.jpg",
+  "/gallery/6.jpg",
+
+  "/gallery/7.jpg",
+
+
 ];
 
 export const GALLERY_ROW_2 = [
-  "/story2.jpg",
+  "/gallery/7.jpg",
+  "/gallery/6.jpg",
+  "/gallery/5.jpg",
   "/gallery/4.jpg",
-  "/gallery/1.jpg",
-  "/branch.png",
   "/gallery/3.jpg",
   "/gallery/2.jpg",
+  "/gallery/1.jpg",
+
 ];
 
 export const GallerySection: React.FC = () => {
