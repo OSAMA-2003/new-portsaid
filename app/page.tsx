@@ -144,7 +144,7 @@ export default function Home() {
           ribbon
           ribbonColor="#F26D21"
           ribbonWidth={76}
-          pauseOnHover
+          pauseOnHover={false}
         />
       </div>
 
