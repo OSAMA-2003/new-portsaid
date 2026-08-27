@@ -475,7 +475,7 @@ export default function AdminPage() {
               لوحة تحكم مطعم نيو بورسعيد
             </h1>
             <p className="text-xs sm:text-sm text-brand-muted">
-              أدخل رمز المرور (PIN) للوصول إلى إدارة المنيو والطلبات والتقييمات
+              أدخل رمز المرور  للوصول إلى إدارة المنيو والطلبات والتقييمات
             </p>
           </div>
 
