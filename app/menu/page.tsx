@@ -13,13 +13,28 @@ import {
   Utensils,
   Layers,
   Sparkles,
+  Check,
 } from "lucide-react";
 import { MENU_DATA, RESTAURANT_INFO } from "@/lib/data.js";
-import { getMenuCategoriesWithItems, getRestaurantSettings, DbCategory, DbRestaurantSettings, DbMenuItem } from "@/lib/dbService";
-import { useCart } from "@/context/CartContext";
+import {
+  getMenuCategoriesWithItems,
+  getRestaurantSettings,
+  DbCategory,
+  DbRestaurantSettings,
+  DbMenuItem,
+} from "@/lib/dbService";
+import {
+  useCart,
+  PortionType,
+  PORTIONS,
+  PORTION_KEYS,
+  calculatePortionPrice,
+} from "@/context/CartContext";
 
 export default function MenuPage() {
-  const [categories, setCategories] = useState<DbCategory[]>(MENU_DATA as unknown as DbCategory[]);
+  const [categories, setCategories] = useState<DbCategory[]>(
+    MENU_DATA as unknown as DbCategory[]
+  );
   const [settings, setSettings] = useState<DbRestaurantSettings>({
     name: RESTAURANT_INFO.name,
     name_en: RESTAURANT_INFO.nameEn,
@@ -39,7 +54,20 @@ export default function MenuPage() {
     categoryTitle?: string;
   } | null>(null);
 
-  const { items: cartItems, addToCart, updateQuantity, totalCount, totalPrice } = useCart();
+  // Track portion selected for each dish card (quarter, half, three_quarters, whole)
+  const [selectedPortions, setSelectedPortions] = useState<Record<string, PortionType>>({});
+  // Track portion in details modal
+  const [modalPortion, setModalPortion] = useState<PortionType>("whole");
+
+  const {
+    items: cartItems,
+    addToCart,
+    updateQuantity,
+    getItemPortionQty,
+    getItemTotalQty,
+    totalCount,
+    totalPrice,
+  } = useCart();
 
   // Load dynamic menu & settings from Supabase / localStorage
   useEffect(() => {
@@ -69,6 +97,13 @@ export default function MenuPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedDishForDetails]);
 
+  // Open Dish Details Modal with item's active portion
+  const handleOpenDetails = (item: DbMenuItem, categoryTitle?: string) => {
+    const activePortion = selectedPortions[item.id] || "whole";
+    setModalPortion(activePortion);
+    setSelectedDishForDetails({ item, categoryTitle });
+  };
+
   // Filter Categories and Items based on Search Query and Active Tab
   const filteredCategories = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -82,7 +117,8 @@ export default function MenuPage() {
         const items = (cat.items || []).filter((item) => {
           if (!query) return true;
           const matchName = item.name.toLowerCase().includes(query);
-          const matchDesc = item.description && item.description.toLowerCase().includes(query);
+          const matchDesc =
+            item.description && item.description.toLowerCase().includes(query);
           return matchName || matchDesc;
         });
 
@@ -93,11 +129,6 @@ export default function MenuPage() {
       })
       .filter((cat) => cat.filteredItems.length > 0);
   }, [categories, activeCategory, searchQuery]);
-
-  const getItemQty = (itemId: string) => {
-    const found = cartItems.find((i) => i.id === itemId);
-    return found ? found.quantity : 0;
-  };
 
   return (
     <div className="min-h-screen bg-brand-cream/60" dir="rtl">
@@ -125,7 +156,7 @@ export default function MenuPage() {
           </h1>
 
           <p className="text-xs sm:text-base text-brand-cream/90 max-w-xl mx-auto font-medium">
-            تصفح أكثر من ١٥٠ صنفاً من أشهى المشويات، الطواجن الفخارية، الصواني الملكية، والمأكولات البحرية والشرقية.
+            اختر الحجم المناسب لطلبك (ربع، نصف، ٣/٤، أو كيلو كامل) واستمتع بأشهى المأكولات الطازجة.
           </p>
 
           {/* Quick Search Bar */}
@@ -135,7 +166,7 @@ export default function MenuPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ابحث عن طبقك المفضل (كباب، طاجن، فراخ، سي فود...)"
+                placeholder="ابحث عن طبقك المفضل (كباب، طاجن، فراخ، كفتة...)"
                 className="w-full bg-white/95 text-brand-brown pr-12 pl-4 py-3.5 sm:py-4 rounded-2xl shadow-xl text-xs sm:text-base focus:outline-none focus:ring-2 focus:ring-brand-orange placeholder:text-brand-muted/70 font-medium"
               />
               <Search className="w-5 h-5 text-brand-orange absolute top-3.5 sm:top-4.5 right-4 pointer-events-none" />
@@ -191,14 +222,16 @@ export default function MenuPage() {
                   className="w-6 h-6 rounded-full object-cover shrink-0 border border-white/40 shadow-xs"
                 />
                 <span>{category.title}</span>
-                <span className="text-[11px] opacity-80">({(category.items || []).length})</span>
+                <span className="text-[11px] opacity-80">
+                  ({(category.items || []).length})
+                </span>
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* 3. MENU ITEMS & CATEGORY SECTIONS WITH BANNERS */}
+      {/* 3. MENU ITEMS & CATEGORY SECTIONS */}
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-16">
         {filteredCategories.length === 0 ? (
           /* Empty Search State */
@@ -206,8 +239,12 @@ export default function MenuPage() {
             <div className="w-16 h-16 bg-brand-orange/10 text-brand-orange rounded-full flex items-center justify-center mx-auto">
               <Search className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold font-aref text-brand-brown">لم نجد أي طبق بهذا الاسم</h3>
-            <p className="text-xs text-brand-muted">جرب البحث بكلمة أخرى أو تصفح الأقسام الرئيسية في الأعلى</p>
+            <h3 className="text-xl font-bold font-aref text-brand-brown">
+              لم نجد أي طبق بهذا الاسم
+            </h3>
+            <p className="text-xs text-brand-muted">
+              جرب البحث بكلمة أخرى أو تصفح الأقسام الرئيسية في الأعلى
+            </p>
             <button
               onClick={() => {
                 setSearchQuery("");
@@ -258,37 +295,49 @@ export default function MenuPage() {
                 {/* Items Grid */}
                 <div className="p-4 sm:p-6 lg:p-8 pt-0 grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {category.filteredItems.map((item) => {
-                    const qty = getItemQty(item.id);
                     const isDailyPrice = item.is_daily || item.price === "يومي";
+                    const currentPortion = selectedPortions[item.id] || "whole";
+                    const currentPortionPrice = calculatePortionPrice(
+                      item.price,
+                      currentPortion
+                    );
+                    const portionQty = getItemPortionQty(item.id, currentPortion);
+                    const totalItemQty = getItemTotalQty(item.id);
 
                     return (
                       <div
                         key={item.id}
-                        className={`p-3.5 sm:p-5 rounded-2xl border transition-all flex items-center justify-between gap-3 group ${
-                          qty > 0
-                            ? "bg-brand-orange/5 border-brand-orange shadow-md"
+                        className={`p-3.5 sm:p-5 rounded-2xl border transition-all flex flex-col justify-between gap-3 group ${
+                          totalItemQty > 0
+                            ? "bg-brand-orange/5 border-brand-orange/60 shadow-md"
                             : "bg-brand-cream/40 hover:bg-brand-cream/80 border-brand-orange/15 hover:border-brand-orange/40 hover:shadow-sm"
                         }`}
                       >
-                        {/* Food Info */}
+                        {/* Top: Food Info & Details Trigger */}
                         <div className="space-y-1.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                            <h4
-                              onClick={() =>
-                                setSelectedDishForDetails({
-                                  item,
-                                  categoryTitle: category.title,
-                                })
-                              }
-                              className="font-bold text-sm sm:text-base text-brand-brown font-aref tracking-wide group-hover:text-brand-orange transition-colors cursor-pointer leading-snug"
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+                              <h4
+                                onClick={() => handleOpenDetails(item, category.title)}
+                                className="font-bold text-sm sm:text-base text-brand-brown font-aref tracking-wide group-hover:text-brand-orange transition-colors cursor-pointer leading-snug"
+                              >
+                                {item.name}
+                              </h4>
+                              {item.badge && (
+                                <span className="bg-brand-orange/15 text-brand-orange text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-orange/25 shrink-0">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
+
+                            <button
+                              onClick={() => handleOpenDetails(item, category.title)}
+                              className="text-[11px] font-bold text-brand-orange hover:text-orange-700 flex items-center gap-1 transition p-1 shrink-0"
+                              title="تفاصيل الصنف"
                             >
-                              {item.name}
-                            </h4>
-                            {item.badge && (
-                              <span className="bg-brand-orange/15 text-brand-orange text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-orange/25">
-                                {item.badge}
-                              </span>
-                            )}
+                              <Info className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">تفاصيل</span>
+                            </button>
                           </div>
 
                           {item.description && (
@@ -296,9 +345,58 @@ export default function MenuPage() {
                               {item.description}
                             </p>
                           )}
+                        </div>
 
-                          {/* Quick Details & Price Bar */}
-                          <div className="pt-1 flex items-center justify-between gap-2">
+                        {/* Middle: Portion Selector (Quarter, Half, 3/4, Whole) */}
+                        {!isDailyPrice && (
+                          <div className="pt-2 border-t border-brand-orange/10 space-y-1">
+                            <div className="flex items-center justify-between text-[11px] font-bold text-brand-muted">
+                              <span>اختر الكمية / الحجم:</span>
+                              <span className="text-brand-orange font-semibold">
+                                {PORTIONS[currentPortion].label}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-brand-orange/20 shadow-inner">
+                              {PORTION_KEYS.map((pKey) => {
+                                const pInfo = PORTIONS[pKey];
+                                const isSelected = currentPortion === pKey;
+                                const isPortionInCart = getItemPortionQty(item.id, pKey) > 0;
+
+                                return (
+                                  <button
+                                    key={pKey}
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedPortions((prev) => ({
+                                        ...prev,
+                                        [item.id]: pKey,
+                                      }))
+                                    }
+                                    className={`py-1 px-1 rounded-lg text-center font-bold text-[11px] sm:text-xs transition-all relative ${
+                                      isSelected
+                                        ? "bg-brand-orange text-white shadow-sm scale-100"
+                                        : "bg-brand-cream/50 text-brand-brown hover:bg-brand-orange/15 hover:text-brand-orange"
+                                    }`}
+                                  >
+                                    <span>{pInfo.shortLabel}</span>
+                                    {isPortionInCart && (
+                                      <span
+                                        className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
+                                          isSelected ? "bg-amber-300" : "bg-brand-orange"
+                                        }`}
+                                      />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Bottom: Price & Add to Cart */}
+                        <div className="pt-2 border-t border-brand-orange/10 flex items-center justify-between gap-2">
+                          <div className="flex flex-col">
                             <div className="flex items-baseline gap-1">
                               {isDailyPrice ? (
                                 <span className="text-[11px] font-bold text-brand-orange bg-brand-orange/10 px-2 py-0.5 rounded-md">
@@ -307,85 +405,87 @@ export default function MenuPage() {
                               ) : (
                                 <>
                                   <span className="text-base sm:text-xl font-extrabold text-brand-brown font-sans">
-                                    {item.price}
+                                    {currentPortionPrice}
                                   </span>
                                   <span className="text-xs font-bold text-brand-orange">ج.م</span>
                                 </>
                               )}
                             </div>
 
-                            <button
-                              onClick={() =>
-                                setSelectedDishForDetails({
-                                  item,
-                                  categoryTitle: category.title,
-                                })
-                              }
-                              className="text-[11px] font-bold text-brand-orange hover:text-orange-700 flex items-center gap-1 transition p-1"
-                            >
-                              <Info className="w-3 h-3" />
-                              <span>تفاصيل</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Quantity / Add Button */}
-                        <div className="shrink-0 flex items-center gap-1.5">
-                          {qty > 0 ? (
-                            <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 shadow-sm border border-brand-orange/30">
-                              <button
-                                onClick={() => updateQuantity(item.id, qty - 1)}
-                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gray-100 hover:bg-red-50 text-brand-brown hover:text-red-600 flex items-center justify-center transition"
-                                aria-label="تقليل الكمية"
-                              >
-                                <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                              </button>
-                              <span className="w-4 sm:w-5 text-center font-bold text-xs sm:text-sm text-brand-brown font-sans">
-                                {qty}
+                            {!isDailyPrice && currentPortion !== "whole" && (
+                              <span className="text-[10px] text-brand-muted font-sans">
+                                (الكيلو: {item.price} ج.م)
                               </span>
+                            )}
+                          </div>
+
+                          {/* Quantity / Add Button */}
+                          <div className="shrink-0">
+                            {portionQty > 0 ? (
+                              <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 shadow-sm border border-brand-orange/30">
+                                <button
+                                  onClick={() =>
+                                    updateQuantity(
+                                      `${item.id}_${currentPortion}`,
+                                      portionQty - 1
+                                    )
+                                  }
+                                  className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-50 text-brand-brown hover:text-red-600 flex items-center justify-center transition"
+                                  aria-label="تقليل الكمية"
+                                >
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="w-5 text-center font-bold text-xs sm:text-sm text-brand-brown font-sans">
+                                  {portionQty}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    addToCart(
+                                      {
+                                        id: item.id,
+                                        name: item.name,
+                                        price:
+                                          typeof item.price === "number" ? item.price : 0,
+                                        category: item.category_id,
+                                        description: item.description,
+                                        image: item.image,
+                                        badge: item.badge,
+                                      },
+                                      1,
+                                      currentPortion
+                                    )
+                                  }
+                                  className="w-7 h-7 rounded-lg bg-brand-orange text-white hover:bg-orange-600 flex items-center justify-center transition shadow-xs"
+                                  aria-label="زيادة الكمية"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
                               <button
                                 onClick={() =>
                                   addToCart(
                                     {
                                       id: item.id,
                                       name: item.name,
-                                      price: typeof item.price === "number" ? item.price : 0,
+                                      price:
+                                        typeof item.price === "number" ? item.price : 0,
                                       category: item.category_id,
                                       description: item.description,
                                       image: item.image,
                                       badge: item.badge,
                                     },
-                                    1
+                                    1,
+                                    currentPortion
                                   )
                                 }
-                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-brand-orange text-white hover:bg-orange-600 flex items-center justify-center transition shadow-xs"
-                                aria-label="زيادة الكمية"
+                                className="inline-flex items-center gap-1 bg-brand-orange hover:bg-orange-600 text-white px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all"
                               >
-                                <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                <span>أضف {PORTIONS[currentPortion].shortLabel}</span>
                               </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                addToCart(
-                                  {
-                                    id: item.id,
-                                    name: item.name,
-                                    price: typeof item.price === "number" ? item.price : 0,
-                                    category: item.category_id,
-                                    description: item.description,
-                                    image: item.image,
-                                    badge: item.badge,
-                                  },
-                                  1
-                                )
-                              }
-                              className="inline-flex items-center gap-1 bg-brand-orange hover:bg-orange-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all"
-                            >
-                              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              <span>أضف</span>
-                            </button>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -426,7 +526,7 @@ export default function MenuPage() {
         </div>
       )}
 
-      {/* 5. FOOD DETAILS MODAL */}
+      {/* 5. FOOD DETAILS MODAL WITH PORTION SELECTOR */}
       {selectedDishForDetails && (
         <div
           className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 select-none animate-in fade-in duration-200"
@@ -488,18 +588,89 @@ export default function MenuPage() {
                 </p>
               </div>
 
+              {/* Portion Selector Grid in Modal */}
+              {!(
+                selectedDishForDetails.item.is_daily ||
+                selectedDishForDetails.item.price === "يومي"
+              ) && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs sm:text-sm font-bold text-brand-brown flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-brand-orange" />
+                      <span>اختر حجم الوجبة / الكمية بالكيلو:</span>
+                    </h4>
+                    <span className="text-xs text-brand-orange font-bold font-sans">
+                      {PORTIONS[modalPortion].label}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {PORTION_KEYS.map((pKey) => {
+                      const pInfo = PORTIONS[pKey];
+                      const isSelected = modalPortion === pKey;
+                      const calculated = calculatePortionPrice(
+                        selectedDishForDetails.item.price,
+                        pKey
+                      );
+
+                      return (
+                        <button
+                          key={pKey}
+                          type="button"
+                          onClick={() => {
+                            setModalPortion(pKey);
+                            setSelectedPortions((prev) => ({
+                              ...prev,
+                              [selectedDishForDetails.item.id]: pKey,
+                            }));
+                          }}
+                          className={`p-3 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-between gap-1 relative ${
+                            isSelected
+                              ? "bg-brand-orange text-white border-brand-orange shadow-md shadow-orange-500/25 scale-[1.02]"
+                              : "bg-brand-cream/60 hover:bg-brand-cream text-brand-brown border-brand-orange/20 hover:border-brand-orange/50"
+                          }`}
+                        >
+                          {isSelected && (
+                            <span className="absolute top-1.5 right-1.5 bg-white text-brand-orange rounded-full p-0.5 shadow-xs">
+                              <Check className="w-3 h-3" />
+                            </span>
+                          )}
+                          <span className="font-bold text-xs sm:text-sm">
+                            {pInfo.shortLabel}
+                          </span>
+                          <span
+                            className={`text-sm sm:text-base font-extrabold font-sans ${
+                              isSelected ? "text-amber-200" : "text-brand-orange"
+                            }`}
+                          >
+                            {calculated} ج.م
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Price & Action Bottom Bar */}
               <div className="pt-3 sm:pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
                 <div>
-                  <span className="text-[11px] sm:text-xs text-brand-muted block font-semibold">السعر</span>
+                  <span className="text-[11px] sm:text-xs text-brand-muted block font-semibold">
+                    السعر الإجمالي
+                  </span>
                   <div className="flex items-baseline gap-1">
                     {selectedDishForDetails.item.is_daily ||
                     selectedDishForDetails.item.price === "يومي" ? (
-                      <span className="text-base sm:text-lg font-bold text-brand-orange">سعر يومي</span>
+                      <span className="text-base sm:text-lg font-bold text-brand-orange">
+                        سعر يومي
+                      </span>
                     ) : (
                       <>
                         <span className="text-2xl sm:text-3xl font-extrabold text-brand-brown font-sans">
-                          {selectedDishForDetails.item.price}
+                          {calculatePortionPrice(
+                            selectedDishForDetails.item.price,
+                            modalPortion
+                          )}
                         </span>
                         <span className="text-xs font-bold text-brand-orange">ج.م</span>
                       </>
@@ -507,14 +678,17 @@ export default function MenuPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 max-w-[180px] sm:max-w-[200px]">
-                  {getItemQty(selectedDishForDetails.item.id) > 0 ? (
+                <div className="flex-1 max-w-[200px] sm:max-w-[220px]">
+                  {getItemPortionQty(selectedDishForDetails.item.id, modalPortion) > 0 ? (
                     <div className="flex items-center justify-between bg-brand-cream px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl border-2 border-brand-orange/40 shadow-sm">
                       <button
                         onClick={() =>
                           updateQuantity(
-                            selectedDishForDetails.item.id,
-                            getItemQty(selectedDishForDetails.item.id) - 1
+                            `${selectedDishForDetails.item.id}_${modalPortion}`,
+                            getItemPortionQty(
+                              selectedDishForDetails.item.id,
+                              modalPortion
+                            ) - 1
                           )
                         }
                         className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white text-brand-brown hover:text-red-600 flex items-center justify-center transition shadow-xs"
@@ -522,7 +696,10 @@ export default function MenuPage() {
                         <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                       <span className="font-bold text-sm sm:text-base text-brand-brown font-sans">
-                        {getItemQty(selectedDishForDetails.item.id)}
+                        {getItemPortionQty(
+                          selectedDishForDetails.item.id,
+                          modalPortion
+                        )}
                       </span>
                       <button
                         onClick={() =>
@@ -539,7 +716,8 @@ export default function MenuPage() {
                               image: selectedDishForDetails.item.image,
                               badge: selectedDishForDetails.item.badge,
                             },
-                            1
+                            1,
+                            modalPortion
                           )
                         }
                         className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-brand-orange text-white hover:bg-orange-600 flex items-center justify-center transition shadow-xs"
@@ -563,13 +741,14 @@ export default function MenuPage() {
                             image: selectedDishForDetails.item.image,
                             badge: selectedDishForDetails.item.badge,
                           },
-                          1
+                          1,
+                          modalPortion
                         )
                       }
                       className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-brand-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-1.5 sm:gap-2 transition text-xs sm:text-sm"
                     >
                       <ShoppingBag className="w-4 h-4" />
-                      <span>أضف للسلة</span>
+                      <span>أضف ({PORTIONS[modalPortion].shortLabel})</span>
                     </button>
                   )}
                 </div>

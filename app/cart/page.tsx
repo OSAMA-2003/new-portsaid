@@ -30,7 +30,7 @@ export default function CartPage() {
   const [orderSubmitted, setOrderSubmitted] = useState(false);
 
   const deliveryFee = orderType === "delivery" ? 25 : 0;
-  const finalTotal = totalPrice + deliveryFee;
+  const finalTotal = totalPrice + (orderType === "delivery" ? 0 : -25); // Context includes deliveryFee by default
 
   const handleSendWhatsAppOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,35 +44,39 @@ export default function CartPage() {
     }
 
     // Build Formatted Arabic WhatsApp Message
-    let msg = `*طلب جديد من موقع مطعم نيو بورسعيد*\n`;
+    let msg = `🌟 *طلب جديد من موقع مطعم نيو بورسعيد* 🌟\n`;
     msg += `----------------------------------------\n`;
-    msg += `*الاسم:* ${customerName}\n`;
-    msg += `*الهاتف:* ${customerPhone}\n`;
-    msg += `*نوع الطلب:* ${orderType === "delivery" ? "توصيل دليفري" : "استلام من المطعم (تيك أواي)"}\n`;
+    msg += `👤 *الاسم:* ${customerName}\n`;
+    msg += `📞 *الهاتف:* ${customerPhone}\n`;
+    msg += `🛵 *نوع الطلب:* ${orderType === "delivery" ? "توصيل دليفري" : "استلام من المطعم (تيك أواي)"}\n`;
     if (orderType === "delivery") {
-      msg += `*العنوان:* ${deliveryAddress}\n`;
+      msg += `📍 *العنوان:* ${deliveryAddress}\n`;
     }
     if (orderNotes.trim()) {
-      msg += `*ملاحظات خاصة:* ${orderNotes}\n`;
+      msg += `📝 *ملاحظات خاصة:* ${orderNotes}\n`;
     }
     msg += `----------------------------------------\n`;
-    msg += `*تفاصيل الأصناف:*\n`;
+    msg += `📋 *تفاصيل الأصناف والكميات:*\n`;
 
     items.forEach((item: CartItem, index: number) => {
       const priceText = typeof item.price === "number" ? `${item.price * item.quantity} ج.م` : item.price;
-      msg += `${index + 1}. *${item.name}* × ${item.quantity} = ${priceText}\n`;
+      const portionText = item.portionLabel ? ` (${item.portionLabel})` : "";
+      msg += `${index + 1}. *${item.name}*${portionText} × ${item.quantity} = ${priceText}\n`;
+      if (item.specialInstructions) {
+        msg += `   ملاحظة: ${item.specialInstructions}\n`;
+      }
     });
 
     msg += `----------------------------------------\n`;
     if (orderType === "delivery") {
-      msg += `*المجموع الفرعي:* ${totalPrice} ج.م\n`;
-      msg += `*خدمة التوصيل:* ${deliveryFee} ج.م\n`;
-      msg += `*الإجمالي الكلي:* *${finalTotal} ج.م*\n`;
+      msg += `💵 *المجموع الفرعي:* ${totalPrice - 25} ج.م\n`;
+      msg += `🛵 *خدمة التوصيل:* 25 ج.م\n`;
+      msg += `🔥 *الإجمالي الكلي:* *${totalPrice} ج.م*\n`;
     } else {
-      msg += `*الإجمالي الكلي:* *${totalPrice} ج.م*\n`;
+      msg += `🔥 *الإجمالي الكلي:* *${totalPrice - 25} ج.م*\n`;
     }
     msg += `----------------------------------------\n`;
-    msg += `شكراً لاختياركم نيو بورسعيد! في انتظار التأكيد`;
+    msg += `أكل بشوات - شكراً لاختياركم نيو بورسعيد! ❤️`;
 
     const whatsappNumber = RESTAURANT_INFO.whatsapp || "201007375151";
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
@@ -91,7 +95,7 @@ export default function CartPage() {
               سلة المأكولات والطلبات
             </h1>
             <p className="text-brand-muted text-xs sm:text-base">
-              راجع أصنافك المختارة وأكمل بيانات التوصيل لإرسال طلبك فوراً
+              راجع أصنافك المختارة وأحجامها (ربع، نصف، ٣/٤، كامل) وأكمل بيانات التوصيل
             </p>
           </div>
 
@@ -147,79 +151,96 @@ export default function CartPage() {
 
                 {/* Items List */}
                 <div className="divide-y divide-gray-100 space-y-3 sm:space-y-4">
-                  {items.map((item: CartItem) => (
-                    <div
-                      key={item.id}
-                      className="pt-3 sm:pt-4 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-brand-cream/20 sm:bg-transparent p-3 sm:p-0 rounded-2xl sm:rounded-none border sm:border-0 border-brand-orange/10"
-                    >
-                      {/* Item Title & Badge */}
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-start justify-between sm:justify-start gap-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-brand-brown text-base sm:text-lg leading-tight">
-                              {item.name}
-                            </h4>
-                            {item.badge && (
-                              <span className="text-[10px] bg-brand-orange/10 text-brand-orange font-bold px-2 py-0.5 rounded-full border border-brand-orange/20">
-                                {item.badge}
+                  {items.map((item: CartItem) => {
+                    const itemKey = item.cartItemId || `${item.id}_${item.portion || "whole"}`;
+                    return (
+                      <div
+                        key={itemKey}
+                        className="pt-3 sm:pt-4 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-brand-cream/20 sm:bg-transparent p-3 sm:p-0 rounded-2xl sm:rounded-none border sm:border-0 border-brand-orange/10"
+                      >
+                        {/* Item Title & Portion Badge */}
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-start justify-between sm:justify-start gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-bold text-brand-brown text-base sm:text-lg leading-tight">
+                                {item.name}
+                              </h4>
+                              {item.portionLabel && (
+                                <span className="text-xs bg-amber-100 text-amber-900 border border-amber-300/80 font-bold px-2.5 py-0.5 rounded-lg shadow-xs">
+                                  {item.portionLabel}
+                                </span>
+                              )}
+                              {item.badge && (
+                                <span className="text-[10px] bg-brand-orange/10 text-brand-orange font-bold px-2 py-0.5 rounded-full border border-brand-orange/20">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Mobile-only Trash button at top right */}
+                            <button
+                              onClick={() => removeFromCart(itemKey)}
+                              className="sm:hidden text-gray-400 hover:text-red-500 p-1"
+                              title="حذف"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap text-xs text-brand-orange font-bold font-sans">
+                            <span>
+                              {typeof item.price === "number" ? `${item.price} ج.م` : item.price}
+                            </span>
+                            {item.basePrice && item.portion !== "whole" && (
+                              <span className="text-gray-400 font-normal text-[11px]">
+                                (سعر الكيلو / الكامل: {item.basePrice} ج.م)
                               </span>
                             )}
                           </div>
+                        </div>
 
-                          {/* Mobile-only Trash button at top right */}
+                        {/* Controls & Subtotal */}
+                        <div className="flex items-center justify-between sm:justify-end gap-4 pt-1 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                          {/* Quantity Stepper */}
+                          <div className="flex items-center gap-2 bg-brand-cream px-2 py-1 rounded-xl border border-brand-orange/20 shadow-xs">
+                            <button
+                              onClick={() => updateQuantity(itemKey, item.quantity - 1)}
+                              className="w-7 h-7 rounded-lg bg-white hover:bg-red-50 text-brand-brown hover:text-red-600 flex items-center justify-center font-bold transition shadow-xs"
+                              aria-label="تقليل"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="w-5 text-center font-bold text-sm font-sans text-brand-brown">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() => updateQuantity(itemKey, item.quantity + 1)}
+                              className="w-7 h-7 rounded-lg bg-brand-orange text-white hover:bg-orange-600 flex items-center justify-center font-bold transition shadow-xs"
+                              aria-label="زيادة"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Total Item Price */}
+                          <div className="text-left font-bold text-brand-brown font-sans text-sm sm:text-base min-w-[75px]">
+                            {typeof item.price === "number"
+                              ? `${item.price * item.quantity} ج.م`
+                              : item.price}
+                          </div>
+
+                          {/* Desktop Remove Button */}
                           <button
-                            onClick={() => removeFromCart(item.id)}
-                            className="sm:hidden text-gray-400 hover:text-red-500 p-1"
-                            title="حذف"
+                            onClick={() => removeFromCart(itemKey)}
+                            className="hidden sm:inline-flex text-gray-400 hover:text-red-500 p-1.5 transition"
+                            title="حذف الصنف"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-
-                        <p className="text-xs text-brand-orange font-bold font-sans">
-                          {typeof item.price === "number" ? `${item.price} ج.م للواحد` : item.price}
-                        </p>
                       </div>
-
-                      {/* Controls & Subtotal */}
-                      <div className="flex items-center justify-between sm:justify-end gap-4 pt-1 sm:pt-0 border-t sm:border-t-0 border-gray-100">
-                        {/* Quantity Stepper */}
-                        <div className="flex items-center gap-2 bg-brand-cream px-2 py-1 rounded-xl border border-brand-orange/20 shadow-xs">
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="w-7 h-7 rounded-lg bg-white hover:bg-red-50 text-brand-brown hover:text-red-600 flex items-center justify-center font-bold transition shadow-xs"
-                            aria-label="تقليل"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-                          <span className="w-5 text-center font-bold text-sm font-sans text-brand-brown">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="w-7 h-7 rounded-lg bg-brand-orange text-white hover:bg-orange-600 flex items-center justify-center font-bold transition shadow-xs"
-                            aria-label="زيادة"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Total Item Price */}
-                        <div className="text-left font-bold text-brand-brown font-sans text-sm sm:text-base min-w-[70px]">
-                          {typeof item.price === "number" ? `${item.price * item.quantity} ج.م` : item.price}
-                        </div>
-
-                        {/* Desktop Remove Button */}
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="hidden sm:inline-flex text-gray-400 hover:text-red-500 p-1.5 transition"
-                          title="حذف الصنف"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -338,21 +359,23 @@ export default function CartPage() {
                   {/* Summary Pricing */}
                   <div className="pt-4 border-t border-gray-100 space-y-2 text-sm">
                     <div className="flex justify-between text-brand-muted text-xs sm:text-sm">
-                      <span>المجموع الفرعي:</span>
-                      <span className="font-bold font-sans text-brand-brown">{totalPrice} ج.م</span>
+                      <span>المجموع الفرعي للأصناف:</span>
+                      <span className="font-bold font-sans text-brand-brown">
+                        {totalPrice - (orderType === "delivery" ? 25 : 0)} ج.م
+                      </span>
                     </div>
 
                     {orderType === "delivery" && (
                       <div className="flex justify-between text-brand-muted text-xs sm:text-sm">
-                        <span>خدمة التوصيل التقديرية:</span>
-                        <span className="font-bold font-sans text-brand-brown">{deliveryFee} ج.م</span>
+                        <span>خدمة التوصيل:</span>
+                        <span className="font-bold font-sans text-brand-brown">25 ج.م</span>
                       </div>
                     )}
 
                     <div className="flex justify-between items-center text-base sm:text-lg font-bold text-brand-brown pt-2 border-t border-dashed border-gray-200">
                       <span>الإجمالي النهائي:</span>
                       <span className="text-xl sm:text-2xl font-extrabold text-brand-orange font-sans">
-                        {finalTotal} ج.م
+                        {orderType === "delivery" ? totalPrice : totalPrice - 25} ج.م
                       </span>
                     </div>
                   </div>

@@ -69,7 +69,7 @@ export const TestimonialsSection: React.FC = () => {
   const marqueeCards = [...TESTIMONIALS_IMAGES, ...TESTIMONIALS_IMAGES, ...TESTIMONIALS_IMAGES];
 
   return (
-    <section id="reviews" className="py-20 bg-brand-cream/80 relative overflow-hidden ">
+    <section id="reviews" className="pb-20 bg-brand-cream/80 relative overflow-hidden ">
       {/* Background Decorative Glows */}
       <div className="absolute right-0 top-1/4 w-96 h-96 bg-brand-orange/5 rounded-full blur-3xl -z-10 pointer-events-none" />
       <div className="absolute left-0 bottom-1/4 w-96 h-96 bg-brand-gold/5 rounded-full blur-3xl -z-10 pointer-events-none" />

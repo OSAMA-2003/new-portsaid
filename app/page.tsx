@@ -3,46 +3,31 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import {
-  Flame,
   Award,
   Users,
   Utensils,
-  Star,
   MapPin,
   Clock,
   ArrowLeft,
   Phone,
-  Volume2,
-  VolumeX,
-  Heart,
-  Sparkles,
   ShoppingBag,
   Store,
   Smartphone,
-  CheckCircle2,
 } from "lucide-react";
 import { DishCarousel } from "@/components/DishCarousel";
-import { ReservationSection } from "@/components/ReservationSection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { GallerySection } from "@/components/GallerySection";
 import { FeedbackSection } from "@/components/FeedbackSection";
 import TextLoop from "@/components/TextLoop";
 import SplitText from "@/components/SplitText";
 import AnimatedCounter from "@/components/AnimatedCounter";
-import { useCart } from "@/context/CartContext";
 
 export default function Home() {
-  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [isHeroMuted, setIsHeroMuted] = useState(true);
-  const heroVideoRef = useRef<HTMLVideoElement>(null);
-  const { addToCart } = useCart();
+  const heroDesktopVideoRef = useRef<HTMLVideoElement>(null);
+  const heroMobileVideoRef = useRef<HTMLVideoElement>(null);
 
-  const toggleHeroSound = () => {
-    if (heroVideoRef.current) {
-      heroVideoRef.current.muted = !heroVideoRef.current.muted;
-      setIsHeroMuted(heroVideoRef.current.muted);
-    }
-  };
+
 
   return (
     <div className="overflow-x-hidden">
@@ -50,15 +35,26 @@ export default function Home() {
       {/* 1. HERO SECTION WITH FULL-BLEED VIDEO BACKGROUND */}
       {/* ============================================================ */}
       <section className="relative min-h-screen  flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8 text-center">
-        {/* Full-Screen Background Video */}
+        {/* Desktop Background Video (Hidden on mobile, visible on md and up) */}
         <video
-          ref={heroVideoRef}
-          src="/Hero-vid.mp4"
+          ref={heroDesktopVideoRef}
+          src="/Hero-vid1.mp4"
           autoPlay
           loop
           muted={isHeroMuted}
           playsInline
-          className="absolute inset-0 w-full h-full object-cover -z-10 scale-105"
+          className="hidden md:block absolute inset-0 w-full h-full object-cover -z-10 scale-105"
+        />
+
+        {/* Mobile Background Video (Visible on mobile, hidden on md and up) */}
+        <video
+          ref={heroMobileVideoRef}
+          src="/Hero-vid2.mp4"
+          autoPlay
+          loop
+          muted={isHeroMuted}
+          playsInline
+          className="block md:hidden absolute inset-0 w-full h-full object-cover -z-10 scale-105"
         />
 
 
@@ -79,7 +75,7 @@ export default function Home() {
           <div className="lg:col-span-6 relative">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white group">
               <img
-                src="/story.jpg"
+                src="/story.png"
                 alt="مطعم نيو بورسعيد من الخارج"
                 className="w-full  object-cover group-hover:scale-105 transition-transform duration-700"
               />

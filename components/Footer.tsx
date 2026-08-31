@@ -50,7 +50,7 @@ export const Footer: React.FC = () => {
             {/* Social Links */}
             <div className="flex items-center gap-3 pt-1">
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/portsaidsohag"
                 target="_blank"
                 rel="noreferrer"
                 className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-brand-orange hover:border-brand-orange text-white transition-all hover:scale-110"
@@ -61,7 +61,7 @@ export const Footer: React.FC = () => {
                 </svg>
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/restaurant.new.bursaeid/"
                 target="_blank"
                 rel="noreferrer"
                 className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-brand-orange hover:border-brand-orange text-white transition-all hover:scale-110"
