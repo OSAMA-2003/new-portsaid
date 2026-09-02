@@ -57,13 +57,6 @@ export default function Home() {
           className="block md:hidden absolute inset-0 w-full h-full object-cover -z-10 scale-105"
         />
 
-
-
-
-
-
-        {/* Centered Hero Content */}
-
       </section>
 
       {/* ============================================================ */}

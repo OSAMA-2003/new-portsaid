@@ -14,8 +14,8 @@ import {
   Layers,
   Sparkles,
   Check,
+  RefreshCw,
 } from "lucide-react";
-import { MENU_DATA, RESTAURANT_INFO } from "@/lib/data.js";
 import {
   getMenuCategoriesWithItems,
   getRestaurantSettings,
@@ -32,16 +32,15 @@ import {
 } from "@/context/CartContext";
 
 export default function MenuPage() {
-  const [categories, setCategories] = useState<DbCategory[]>(
-    MENU_DATA as unknown as DbCategory[]
-  );
+  const [categories, setCategories] = useState<DbCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<DbRestaurantSettings>({
-    name: RESTAURANT_INFO.name,
-    name_en: RESTAURANT_INFO.nameEn,
-    tagline: RESTAURANT_INFO.tagline,
-    phones: RESTAURANT_INFO.phones,
-    address: RESTAURANT_INFO.address,
-    whatsapp: RESTAURANT_INFO.whatsapp,
+    name: "مطعم نيو بورسعيد",
+    name_en: "New Port Said Restaurant",
+    tagline: "أصالة الطعم البورسعيدي والمشويات على الفحم",
+    phones: ["01007375151", "01100130080"],
+    address: "سوهاج - سيتي - أمام مدرسة الأرقم",
+    whatsapp: "201007375151",
     working_hours: "يومياً من ١٢:٠٠ ظهراً حتى ٠٢:٠٠ صباحاً",
     facebook_url: "https://facebook.com",
     instagram_url: "https://instagram.com",
@@ -69,18 +68,21 @@ export default function MenuPage() {
     totalPrice,
   } = useCart();
 
-  // Load dynamic menu & settings from Supabase / localStorage
+  // Load dynamic menu & settings from Express / MongoDB
   useEffect(() => {
     async function fetchData() {
+      setIsLoading(true);
       try {
         const [dbCats, dbSetts] = await Promise.all([
           getMenuCategoriesWithItems(),
           getRestaurantSettings(),
         ]);
-        if (dbCats && dbCats.length > 0) setCategories(dbCats);
+        setCategories(dbCats || []);
         if (dbSetts) setSettings(dbSetts);
       } catch (err) {
-        console.error("Error loading menu data:", err);
+        console.error("Error loading menu data from backend:", err);
+      } finally {
+        setIsLoading(false);
       }
     }
     fetchData();
@@ -233,7 +235,19 @@ export default function MenuPage() {
 
       {/* 3. MENU ITEMS & CATEGORY SECTIONS */}
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-16">
-        {filteredCategories.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-8 animate-pulse">
+            <div className="h-44 bg-white rounded-3xl border border-brand-orange/20 shadow-sm flex flex-col items-center justify-center gap-3">
+              <RefreshCw className="w-8 h-8 text-brand-orange animate-spin" />
+              <span className="text-sm font-bold text-brand-brown">جارٍ جلب المنيو وقائمة الأطباق من السيرفر مباشرة...</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div key={n} className="h-72 bg-white/80 rounded-3xl border border-brand-orange/15 shadow-sm"></div>
+              ))}
+            </div>
+          </div>
+        ) : filteredCategories.length === 0 ? (
           /* Empty Search State */
           <div className="text-center py-16 sm:py-20 bg-white rounded-3xl p-8 border border-brand-orange/20 shadow-sm max-w-md mx-auto space-y-4">
             <div className="w-16 h-16 bg-brand-orange/10 text-brand-orange rounded-full flex items-center justify-center mx-auto">

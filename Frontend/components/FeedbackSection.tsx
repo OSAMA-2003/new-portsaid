@@ -12,12 +12,14 @@ export const FeedbackSection: React.FC = () => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim() || !message.trim()) return;
 
     setLoading(true);
+    setErrorMessage(null);
     try {
       await submitCustomerFeedback({
         name: name.trim(),
@@ -30,9 +32,9 @@ export const FeedbackSection: React.FC = () => {
       setPhone("");
       setMessage("");
       setTimeout(() => setSubmitted(false), 5000);
-    } catch (err) {
-      console.error(err);
-      alert("حدث خطأ أثناء الإرسال. يرجى المحاولة لاحقاً.");
+    } catch (err: any) {
+      console.error("Feedback submission error:", err);
+      setErrorMessage("تعذر الإرسال: السيرفر غير متصل حالياً (Server Not Connected). يرجى التأكد من تشغيل السيرفر والمحاولة مرة أخرى.");
     } finally {
       setLoading(false);
     }
@@ -158,11 +160,19 @@ export const FeedbackSection: React.FC = () => {
                 />
               </div>
 
+              {/* Error Alert */}
+              {errorMessage && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-bold p-3.5 rounded-xl flex items-center gap-2 animate-in fade-in duration-200">
+                  <ShieldAlert className="w-4 h-4 text-red-500 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-brand-dark hover:bg-black text-white py-4 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                className="w-full bg-brand-dark hover:bg-black text-white py-4 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Send className="w-4 h-4 text-brand-orange" />
                 <span>{loading ? "جاري الإرسال..." : "إرسال الرسالة إلى الإدارة"}</span>

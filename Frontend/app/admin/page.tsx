@@ -31,6 +31,9 @@ import {
   Send,
   Upload,
   Image as ImageIcon,
+  WifiOff,
+  Server,
+  AlertTriangle,
 } from "lucide-react";
 import {
   getMenuCategoriesWithItems,
@@ -47,6 +50,9 @@ import {
   getAllFeedbackAdmin,
   markFeedbackAsRead,
   deleteFeedback,
+  uploadImageToCloudinary,
+  getBackendStats,
+  checkServerConnection,
   DbCategory,
   DbMenuItem,
   DbRestaurantSettings,
@@ -66,12 +72,20 @@ export default function AdminPage() {
     "items" | "categories" | "reviews" | "feedback" | "settings" | "database"
   >("items");
 
+  // Server Connection & Loading States
+  const [serverStatus, setServerStatus] = useState<"checking" | "connected" | "disconnected">("checking");
+  const [serverErrorMsg, setServerErrorMsg] = useState("");
+  const [loading, setLoading] = useState(true);
+
   // Data States
-  const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [settings, setSettings] = useState<DbRestaurantSettings | null>(null);
   const [reviews, setReviews] = useState<DbCustomerReview[]>([]);
   const [feedbackList, setFeedbackList] = useState<DbFeedback[]>([]);
+  const [dbStats, setDbStats] = useState<{
+    connected: boolean;
+    stats?: { categories: number; menuItems: number; reviews: number; feedback: number };
+  }>({ connected: false });
 
   // Filter & Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,10 +96,12 @@ export default function AdminPage() {
   // Item Modal State
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Partial<DbMenuItem> | null>(null);
+  const [uploadingItemImage, setUploadingItemImage] = useState(false);
 
   // Category Modal State
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Partial<DbCategory> | null>(null);
+  const [uploadingCategoryImage, setUploadingCategoryImage] = useState(false);
 
   // Feedback Toast
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -116,20 +132,38 @@ export default function AdminPage() {
 
   const loadAllData = async () => {
     setLoading(true);
+    setServerStatus("checking");
+    setServerErrorMsg("");
+
     try {
-      const [cats, setts, revs, fbs] = await Promise.all([
+      // 1. Check server health first
+      const health = await checkServerConnection();
+      if (!health.connected) {
+        setServerStatus("disconnected");
+        setServerErrorMsg(health.message || "تعذر الوصول إلى سيرفر Express (Port 5000)");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fetch all data simultaneously from the connected backend
+      const [cats, setts, revs, fbs, backendStats] = await Promise.all([
         getMenuCategoriesWithItems(),
         getRestaurantSettings(),
         getAllCustomerReviewsAdmin(),
         getAllFeedbackAdmin(),
+        getBackendStats().catch(() => ({ connected: true })),
       ]);
+
       setCategories(cats);
       setSettings(setts);
       setReviews(revs || []);
       setFeedbackList(fbs || []);
+      setDbStats(backendStats);
+      setServerStatus("connected");
     } catch (err: any) {
       console.error("Error loading data:", err);
-      showToast("تعذر جلب البيانات من السيرفر. يتم استخدام البيانات المخزنة.", "error");
+      setServerStatus("disconnected");
+      setServerErrorMsg(err?.message || "حدث خطأ أثناء الاتصال بالسيرفر وقاعدة البيانات.");
     } finally {
       setLoading(false);
     }
@@ -245,41 +279,49 @@ export default function AdminPage() {
     }
   };
 
-  // Image Upload Handlers (Direct from Device)
-  const handleCategoryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image Upload Handlers (Upload Directly to Cloudinary)
+  const handleCategoryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("حجم الصورة كبير. يرجى اختيار صورة أقل من 5 ميجابايت", "error");
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("حجم الصورة كبير. يرجى اختيار صورة أقل من 10 ميجابايت", "error");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      setEditingCategory((prev) => (prev ? { ...prev, image: base64 } : null));
-      showToast("تم رفع صورة القسم بنجاح!");
-    };
-    reader.readAsDataURL(file);
+    setUploadingCategoryImage(true);
+    try {
+      const cloudinaryUrl = await uploadImageToCloudinary(file, "new-portsaid/categories");
+      setEditingCategory((prev) => (prev ? { ...prev, image: cloudinaryUrl } : null));
+      showToast("تم رفع صورة القسم إلى Cloudinary بنجاح!");
+    } catch (err: any) {
+      console.error("Cloudinary upload error:", err);
+      showToast(err?.message || "تعذر رفع صورة القسم إلى Cloudinary", "error");
+    } finally {
+      setUploadingCategoryImage(false);
+    }
   };
 
-  const handleItemImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleItemImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("حجم الصورة كبير. يرجى اختيار صورة أقل من 5 ميجابايت", "error");
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("حجم الصورة كبير. يرجى اختيار صورة أقل من 10 ميجابايت", "error");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      setEditingItem((prev) => (prev ? { ...prev, image: base64 } : null));
-      showToast("تم رفع صورة الطبق بنجاح!");
-    };
-    reader.readAsDataURL(file);
+    setUploadingItemImage(true);
+    try {
+      const cloudinaryUrl = await uploadImageToCloudinary(file, "new-portsaid/items");
+      setEditingItem((prev) => (prev ? { ...prev, image: cloudinaryUrl } : null));
+      showToast("تم رفع صورة الطبق إلى Cloudinary بنجاح!");
+    } catch (err: any) {
+      console.error("Cloudinary upload error:", err);
+      showToast(err?.message || "تعذر رفع صورة الطبق إلى Cloudinary", "error");
+    } finally {
+      setUploadingItemImage(false);
+    }
   };
 
   // ----------------------------------------------------
@@ -415,7 +457,7 @@ export default function AdminPage() {
   // 1-CLICK DATABASE SEEDING
   // ----------------------------------------------------
   const handleSeedDatabase = async () => {
-    if (!confirm("هل ترغب في رفع وتهيئة جميع الأقسام والـ 152 صنفاً من data.js إلى قاعدة بيانات Supabase؟")) return;
+    if (!confirm("هل ترغب في تهيئة وتحديث جميع الأقسام والأصناف الافتراضية في قاعدة بيانات MongoDB؟")) return;
 
     setSeedingLoading(true);
     try {
@@ -424,7 +466,7 @@ export default function AdminPage() {
       await loadAllData();
     } catch (err: any) {
       console.error(err);
-      showToast(err.message || "حدث خطأ أثناء نقل البيانات.", "error");
+      showToast(err.message || "حدث خطأ أثناء نقل البيانات إلى MongoDB.", "error");
     } finally {
       setSeedingLoading(false);
     }
@@ -518,7 +560,103 @@ export default function AdminPage() {
   }
 
   // ----------------------------------------------------
-  // 2. AUTHENTICATED ADMIN DASHBOARD
+  // 2. SERVER DISCONNECTED SCREEN (Do NOT open admin until server connects)
+  // ----------------------------------------------------
+  if (serverStatus === "disconnected") {
+    return (
+      <div className="min-h-screen bg-brand-cream/80 flex items-center justify-center p-4 pt-12" dir="rtl">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-10 max-w-lg w-full border-2 border-red-500/30 text-center space-y-6 animate-in zoom-in-95 duration-300">
+          <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-red-200">
+            <WifiOff className="w-10 h-10" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 bg-red-50 text-red-700 px-3.5 py-1 rounded-full text-xs font-bold border border-red-200">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+              السيرفر غير متصل (Server Not Connected)
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold font-aref text-brand-brown">
+              تعذر الاتصال بسيرفر الباك اند
+            </h1>
+            <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">
+              لن تفتح لوحة التحكم حتى يتم الاتصال بسيرفر Express وقاعدة بيانات MongoDB بنجاح. يرجى التأكد من تشغيل السيرفر من التيرمينال أولاً.
+            </p>
+          </div>
+
+          {serverErrorMsg && (
+            <div className="text-xs text-red-700 bg-red-50 p-3 rounded-2xl border border-red-200 font-mono text-left" dir="ltr">
+              Error: {serverErrorMsg}
+            </div>
+          )}
+
+          <div className="bg-brand-dark text-white p-5 rounded-2xl text-xs space-y-2 text-right">
+            <p className="font-bold text-amber-400 flex items-center gap-1.5">
+              <span>أمر تشغيل السيرفر في مجلد Backend:</span>
+            </p>
+            <pre className="bg-black/50 p-3 rounded-xl font-mono text-left text-amber-200 overflow-x-auto text-sm" dir="ltr">
+              cd Backend{"\n"}npm run dev
+            </pre>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <button
+              onClick={loadAllData}
+              disabled={loading}
+              className="w-full py-4 bg-gradient-to-r from-brand-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              <span>{loading ? "جارٍ محاولة الاتصال..." : "إعادة محاولة الاتصال بالسيرفر الآن"}</span>
+            </button>
+
+            <Link
+              href="/"
+              className="block w-full py-2.5 text-xs font-bold text-brand-brown hover:text-brand-orange transition"
+            >
+              ← العودة للصفحة الرئيسية للموقع
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 3. SERVER CONNECTED - FULL LOADER UNTIL ALL DATA IS LOADED
+  // ----------------------------------------------------
+  if (loading || serverStatus === "checking") {
+    return (
+      <div className="min-h-screen bg-brand-cream/80 flex items-center justify-center p-4" dir="rtl">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-12 max-w-md w-full border-2 border-brand-orange/30 text-center space-y-6 animate-in zoom-in-95 duration-300">
+          <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+            <div className="absolute inset-0 rounded-3xl bg-brand-orange/20 animate-ping"></div>
+            <div className="relative w-20 h-20 bg-gradient-to-tr from-brand-orange to-amber-500 text-white rounded-3xl flex items-center justify-center shadow-xl shadow-orange-500/30">
+              <RefreshCw className="w-10 h-10 animate-spin" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3.5 py-1 rounded-full text-xs font-bold border border-green-200">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              تم الاتصال بالسيرفر بنجاح
+            </div>
+            <h2 className="text-2xl font-bold font-aref text-brand-brown">
+              جارٍ جلب وتجهيز بيانات لوحة التحكم...
+            </h2>
+            <p className="text-xs text-brand-muted leading-relaxed">
+              يتم الآن جلب أصناف المنيو، الأقسام، التقييمات، والشكاوى من MongoDB Atlas لعرضها بشكل كامل ومباشر.
+            </p>
+          </div>
+
+          <div className="w-full bg-brand-cream/50 h-2.5 rounded-full overflow-hidden p-0.5 border border-brand-orange/20">
+            <div className="bg-gradient-to-r from-brand-orange to-amber-500 h-full rounded-full w-3/4 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 4. AUTHENTICATED ADMIN DASHBOARD (RENDER ONLY WHEN CONNECTED & LOADED)
   // ----------------------------------------------------
   const pendingReviewsCount = reviews.filter((r) => r.status === "pending").length;
   const unreadFeedbackCount = feedbackList.filter((f) => !f.is_read).length;
@@ -546,8 +684,18 @@ export default function AdminPage() {
               <span className="bg-brand-orange text-white text-xs font-bold px-3 py-1 rounded-full">
                 لوحة الإدارة الشاملة
               </span>
-              <span className="text-xs text-amber-300/80 font-sans">
-                Supabase Connected 🟢
+              <span className="text-xs font-sans px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 bg-white/10 text-amber-300">
+                {dbStats.connected ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    <span>Express & MongoDB Connected</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span>Express Server Mode</span>
+                  </>
+                )}
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold font-aref">
@@ -1315,132 +1463,125 @@ export default function AdminPage() {
         )}
 
         {/* ---------------------------------------------------- */}
-        {/* TAB 6: DATABASE & SUPABASE SYNC */}
+        {/* TAB 6: DATABASE & MONGODB SYNC */}
         {/* ---------------------------------------------------- */}
         {activeTab === "database" && (
           <div className="space-y-6 max-w-4xl mx-auto">
-            {/* 1-Click Sync Card */}
-            <div className="bg-gradient-to-br from-white to-brand-cream p-8 rounded-3xl shadow-xl border-2 border-brand-orange/30 space-y-6 text-right">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-brand-orange text-white flex items-center justify-center shadow-md">
-                  <Database className="w-6 h-6" />
+            {/* MongoDB Connection & Status Card */}
+            <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-brand-orange/20 space-y-6 text-right">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-brand-orange/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-brand-orange/15 text-brand-orange flex items-center justify-center shadow-inner">
+                    <Database className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold font-aref text-brand-brown">
+                      حالة قاعدة بيانات MongoDB وسيرفر Express
+                    </h3>
+                    <p className="text-xs text-brand-muted">
+                      الاتصال بقاعدة بيانات MongoDB Atlas وتخزين الوسائط عبر Cloudinary CDN
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold font-aref text-brand-brown">
-                    التهيئة السريعة ونقل البيانات إلى Supabase
-                  </h3>
-                  <p className="text-xs sm:text-sm text-brand-muted">
-                    يقوم هذا الزر بنقل جميع الأقسام الـ 15 وأصناف المنيو إلى قاعدة بيانات Supabase الحية بنقرة واحدة.
+
+                <div className="flex items-center gap-2">
+                  {dbStats.connected ? (
+                    <span className="bg-green-50 text-green-700 border border-green-200 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping"></span>
+                      متصل بقاعدة البيانات
+                    </span>
+                  ) : (
+                    <span className="bg-amber-50 text-amber-700 border border-amber-200 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                      سيرفر Express محلي
+                    </span>
+                  )}
+                  <button
+                    onClick={loadAllData}
+                    className="p-2 rounded-xl bg-brand-cream hover:bg-brand-orange/15 text-brand-orange transition"
+                    title="تحديث البيانات"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats Counters Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-brand-cream/40 p-4 rounded-2xl border border-brand-orange/15 text-center">
+                  <span className="block text-xs font-bold text-brand-muted mb-1">أقسام MongoDB</span>
+                  <span className="text-2xl font-black font-sans text-brand-brown">
+                    {dbStats.stats?.categories ?? categories.length}
+                  </span>
+                </div>
+                <div className="bg-brand-cream/40 p-4 rounded-2xl border border-brand-orange/15 text-center">
+                  <span className="block text-xs font-bold text-brand-muted mb-1">أطباق المنيو</span>
+                  <span className="text-2xl font-black font-sans text-brand-orange">
+                    {dbStats.stats?.menuItems ?? allItems.length}
+                  </span>
+                </div>
+                <div className="bg-brand-cream/40 p-4 rounded-2xl border border-brand-orange/15 text-center">
+                  <span className="block text-xs font-bold text-brand-muted mb-1">التقييمات</span>
+                  <span className="text-2xl font-black font-sans text-amber-500">
+                    {dbStats.stats?.reviews ?? reviews.length}
+                  </span>
+                </div>
+                <div className="bg-brand-cream/40 p-4 rounded-2xl border border-brand-orange/15 text-center">
+                  <span className="block text-xs font-bold text-brand-muted mb-1">الشكاوى والاقتراحات</span>
+                  <span className="text-2xl font-black font-sans text-red-500">
+                    {dbStats.stats?.feedback ?? feedbackList.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* 1-Click Sync Button */}
+              <div className="space-y-3 pt-2">
+                <button
+                  onClick={handleSeedDatabase}
+                  disabled={seedingLoading}
+                  className="w-full py-4 bg-gradient-to-r from-brand-orange via-orange-600 to-amber-600 hover:opacity-95 text-white font-bold rounded-2xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-3 transition text-base"
+                >
+                  <Sparkles className={`w-5 h-5 ${seedingLoading ? "animate-spin" : ""}`} />
+                  <span>
+                    {seedingLoading
+                      ? "جارٍ نقل وتحديث البيانات في MongoDB..."
+                      : "تهيئة وحفظ جميع أصناف المنيو في MongoDB الآن"}
+                  </span>
+                </button>
+                <p className="text-[11px] text-brand-muted text-center">
+                  يقوم هذا الإجراء بنقل كافة الأصناف (152 صنفاً) والأقسام والبيانات الأساسية وتحديثها فوراً في MongoDB.
+                </p>
+              </div>
+            </div>
+
+            {/* Architecture Overview Card */}
+            <div className="bg-brand-dark text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-brand-orange/30 space-y-4">
+              <h4 className="font-bold text-lg font-aref text-amber-300">
+                مواصفات البنية التحتية (Full Stack Architecture)
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="bg-black/30 p-4 rounded-2xl border border-white/10 space-y-2">
+                  <p className="font-bold text-amber-400 text-sm">1. خادم Express.js</p>
+                  <p className="text-white/80">
+                    REST API متكامل وسريع على المنفذ 5000 يعالج كافة العمليات مع التحقق، الأمان والتحكم الكامل.
+                  </p>
+                </div>
+
+                <div className="bg-black/30 p-4 rounded-2xl border border-white/10 space-y-2">
+                  <p className="font-bold text-amber-400 text-sm">2. سحابة MongoDB Atlas</p>
+                  <p className="text-white/80">
+                    قاعدة بيانات NoSQL مرنة وموزعة سحابياً عبر Mongoose مع دعم الفهرسة والعمليات التراكمية.
+                  </p>
+                </div>
+
+                <div className="bg-black/30 p-4 rounded-2xl border border-white/10 space-y-2">
+                  <p className="font-bold text-amber-400 text-sm">3. شبكة Cloudinary CDN</p>
+                  <p className="text-white/80">
+                    رفع وتخزين الصور مباشرة في سحابة Cloudinary للحصول على روابط CDN فائقة السرعة وأعلى جودة.
                   </p>
                 </div>
               </div>
-
-              <div className="bg-white p-4 rounded-2xl border border-brand-orange/20 space-y-2 text-xs text-brand-brown">
-                <p className="font-bold text-sm text-brand-orange">قبل الضغط على الزر:</p>
-                <p>1. تأكد من فتح لوحة تحكم Supabase لمشروعك.</p>
-                <p>2. توجه إلى **SQL Editor** ونفّذ سكربت إنشاء الجداول الموضح بالأسفل.</p>
-                <p>3. اضغط على الزر البرتقالي بالأسفل لنقل كافة الأطباق والأسعار والإعدادات فوراً.</p>
-              </div>
-
-              <button
-                onClick={handleSeedDatabase}
-                disabled={seedingLoading}
-                className="w-full py-4 bg-gradient-to-r from-brand-orange via-orange-600 to-amber-600 hover:opacity-95 text-white font-bold rounded-2xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-3 transition text-base"
-              >
-                <Sparkles className={`w-5 h-5 ${seedingLoading ? "animate-spin" : ""}`} />
-                <span>
-                  {seedingLoading
-                    ? "جارٍ نقل وحفظ البيانات في Supabase..."
-                    : "نقل وحفظ جميع أصناف المنيو في Supabase الآن"}
-                </span>
-              </button>
-            </div>
-
-            {/* SQL Guide */}
-            <div className="bg-brand-dark text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-brand-orange/30 space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-lg font-aref text-amber-300">سكربت إنشاء جداول Supabase (SQL Schema)</h4>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`-- 1. Categories
-CREATE TABLE IF NOT EXISTS public.categories (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    image TEXT,
-    description TEXT,
-    icon TEXT,
-    display_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 2. Menu Items
-CREATE TABLE IF NOT EXISTS public.menu_items (
-    id TEXT PRIMARY KEY,
-    category_id TEXT REFERENCES public.categories(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    price NUMERIC NOT NULL DEFAULT 0,
-    is_daily BOOLEAN DEFAULT FALSE,
-    badge TEXT,
-    description TEXT,
-    image TEXT,
-    is_available BOOLEAN DEFAULT TRUE,
-    display_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 3. Settings
-CREATE TABLE IF NOT EXISTS public.restaurant_settings (
-    id TEXT PRIMARY KEY DEFAULT 'default_settings',
-    name TEXT NOT NULL DEFAULT 'مطعم نيو بورسعيد',
-    name_en TEXT DEFAULT 'New Port Said Restaurant',
-    tagline TEXT DEFAULT 'أكل بشوات • طعم أصيل يُشوى بشغف',
-    phones TEXT[] DEFAULT ARRAY['01007375151', '01100130080', '01008329497'],
-    address TEXT DEFAULT 'سوهاج الجديدة - مول ريتاج 1',
-    whatsapp TEXT DEFAULT '201007375151',
-    working_hours TEXT DEFAULT 'يومياً من ١٢:٠٠ ظهراً حتى ٠٢:٠٠ صباحاً',
-    facebook_url TEXT DEFAULT 'https://facebook.com',
-    instagram_url TEXT DEFAULT 'https://instagram.com',
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 4. Customer Reviews
-CREATE TABLE IF NOT EXISTS public.customer_reviews (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    phone TEXT,
-    rating INT DEFAULT 5,
-    comment TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 5. Feedback
-CREATE TABLE IF NOT EXISTS public.feedback (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    type TEXT DEFAULT 'suggestion',
-    message TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);`);
-                    showToast("تم نسخ سكربت SQL إلى الحافظة!");
-                  }}
-                  className="bg-brand-orange hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>نسخ السكربت</span>
-                </button>
-              </div>
-
-              <pre className="bg-black/50 p-4 rounded-2xl text-xs text-amber-200 overflow-x-auto max-h-60 font-mono text-left" dir="ltr">
-                {`-- Execute this in Supabase SQL Editor:
-CREATE TABLE IF NOT EXISTS public.categories (...);
-CREATE TABLE IF NOT EXISTS public.menu_items (...);
-CREATE TABLE IF NOT EXISTS public.restaurant_settings (...);
-CREATE TABLE IF NOT EXISTS public.customer_reviews (...);
-CREATE TABLE IF NOT EXISTS public.feedback (...);`}
-              </pre>
             </div>
           </div>
         )}
@@ -1542,9 +1683,14 @@ CREATE TABLE IF NOT EXISTS public.feedback (...);`}
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-brand-brown">صورة الطبق (اختياري)</label>
+                <label className="block text-xs font-bold text-brand-brown">صورة الطبق (Cloudinary)</label>
 
-                {editingItem.image ? (
+                {uploadingItemImage ? (
+                  <div className="h-36 rounded-2xl border-2 border-dashed border-brand-orange/40 bg-brand-cream/60 flex flex-col items-center justify-center gap-2 animate-pulse">
+                    <RefreshCw className="w-7 h-7 text-brand-orange animate-spin" />
+                    <span className="text-xs font-bold text-brand-brown">جارٍ رفع الصورة إلى Cloudinary CDN...</span>
+                  </div>
+                ) : editingItem.image ? (
                   <div className="relative rounded-2xl overflow-hidden border-2 border-brand-orange/30 group bg-black/5 h-36">
                     <img
                       src={editingItem.image}
@@ -1576,7 +1722,8 @@ CREATE TABLE IF NOT EXISTS public.feedback (...);`}
                     <div className="w-10 h-10 rounded-xl bg-brand-orange/15 text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Upload className="w-5 h-5" />
                     </div>
-                    <p className="text-xs font-bold text-brand-brown">انقر لرفع صورة الطبق من جهازك</p>
+                    <p className="text-xs font-bold text-brand-brown">انقر لرفع صورة الطبق إلى Cloudinary مباشرة</p>
+                    <p className="text-[10px] text-brand-muted">PNG, JPG, WEBP حتى 10 ميجابايت</p>
                   </label>
                 )}
 
@@ -1668,10 +1815,15 @@ CREATE TABLE IF NOT EXISTS public.feedback (...);`}
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-brand-brown">صورة غلاف القسم</label>
+                <label className="block text-xs font-bold text-brand-brown">صورة غلاف القسم (Cloudinary)</label>
 
                 {/* Upload & Live Preview Card */}
-                {editingCategory.image ? (
+                {uploadingCategoryImage ? (
+                  <div className="h-44 rounded-2xl border-2 border-dashed border-brand-orange/40 bg-brand-cream/60 flex flex-col items-center justify-center gap-2 animate-pulse">
+                    <RefreshCw className="w-8 h-8 text-brand-orange animate-spin" />
+                    <span className="text-xs font-bold text-brand-brown">جارٍ رفع صورة القسم إلى Cloudinary CDN...</span>
+                  </div>
+                ) : editingCategory.image ? (
                   <div className="relative rounded-2xl overflow-hidden border-2 border-brand-orange/30 group bg-black/5 h-44">
                     <img
                       src={editingCategory.image}
@@ -1705,10 +1857,10 @@ CREATE TABLE IF NOT EXISTS public.feedback (...);`}
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs font-bold text-brand-brown">
-                        انقر لاختيار ورفع صورة من جهازك
+                        انقر لاختيار ورفع صورة للقسم إلى Cloudinary مباشرة
                       </p>
                       <p className="text-[11px] text-brand-muted">
-                        PNG, JPG, WEBP حتى 5 ميجابايت
+                        PNG, JPG, WEBP حتى 10 ميجابايت
                       </p>
                     </div>
                   </label>

@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Preloader } from "@/components/Preloader";
 import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
+import { ServerStatusAlert } from "@/components/ServerStatusAlert";
 
 const changa = localFont({
   src: [
@@ -80,6 +81,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={`${changa.variable} ${arefRuqaa.variable}`}>
       <body className="bg-brand-cream text-brand-text min-h-screen flex flex-col antialiased selection:bg-brand-orange selection:text-white font-sans">
+        <ServerStatusAlert />
         <Preloader />
         <CartProvider>
           <Navbar />

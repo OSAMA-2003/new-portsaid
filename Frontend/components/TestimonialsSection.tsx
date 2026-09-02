@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Star, Plus, Check, MessageSquareHeart } from "lucide-react";
+import { Star, Plus, Check, MessageSquareHeart, AlertCircle } from "lucide-react";
 import SplitText from "@/components/SplitText";
 import { submitCustomerReview, getApprovedCustomerReviews, DbCustomerReview } from "@/lib/dbService";
 
@@ -26,6 +26,7 @@ export const TestimonialsSection: React.FC = () => {
   const [formComment, setFormComment] = useState("");
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formSuccess, setFormSuccess] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Load approved reviews
   useEffect(() => {
@@ -41,6 +42,7 @@ export const TestimonialsSection: React.FC = () => {
     if (!formName.trim() || !formComment.trim()) return;
 
     setFormSubmitting(true);
+    setFormError(null);
     try {
       await submitCustomerReview({
         name: formName.trim(),
@@ -57,9 +59,9 @@ export const TestimonialsSection: React.FC = () => {
         setFormRating(5);
         setFormComment("");
       }, 2500);
-    } catch (err) {
-      console.error(err);
-      alert("تعذر إرسال التقييم، يرجى المحاولة مرة أخرى.");
+    } catch (err: any) {
+      console.error("Submit review error:", err);
+      setFormError("تعذر إرسال التقييم: السيرفر غير متصل حالياً (Server Not Connected). يرجى التأكد من تشغيل السيرفر والمحاولة مرة أخرى.");
     } finally {
       setFormSubmitting(false);
     }
@@ -320,10 +322,18 @@ export const TestimonialsSection: React.FC = () => {
                   />
                 </div>
 
+                {/* Error Banner */}
+                {formError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-bold p-3 rounded-xl flex items-center gap-2 animate-in fade-in duration-200">
+                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="w-full bg-gradient-to-r from-brand-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-orange-500/25 transition flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-brand-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-orange-500/25 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {formSubmitting ? "جاري الإرسال..." : "إرسال التقييم الآن"}
                 </button>
